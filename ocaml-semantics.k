@@ -49,7 +49,7 @@ module OCAML-CONFIGURATION
             <br/>
             <patternAttempts>
                 <patternAttempt multiplicity="*">
-                    <patterns color="Violet"> .Bag </patterns>
+                    <patterns color="Violet"> .K </patterns>
                     <subst color="GreenYellow"> .Map </subst>
                 </patternAttempt>
             </patternAttempts>
@@ -57,7 +57,7 @@ module OCAML-CONFIGURATION
         </T>
         <result multiplicity="?" color="DodgerBlue">
             <exprResult> .K </exprResult>
-            <output> "" </output>
+            <outputInResult> "" </outputInResult>
         </result>
 
 
@@ -84,6 +84,11 @@ module OCAML-EXTERNAL
     syntax KItem ::= "external" "(" K "," Int ")"
     syntax KItem ::= "externalClosure" "(" K "," Int "," KList ")"
 
+    syntax Int ::= lengthKList(KList) [function]
+
+    rule lengthKList(.KList) => 0
+    rule lengthKList((K:K ,, KL:KList)) => 1 +Int lengthKList(KL)
+
     rule 'isKResult(externalClosure(_, Arity:Int, _)) => true
         when Arity >Int 0
 
@@ -97,7 +102,7 @@ module OCAML-EXTERNAL
 
     rule
         apply(externalClosure(Op:K, Arity:Int, Args:KList), NewArgs:KList)
-        => externalClosure(Op, Arity -Int size(NewArgs), (Args,, NewArgs))
+        => externalClosure(Op, Arity -Int lengthKList(NewArgs), (Args,, NewArgs))
 
     rule
         externalClosure(Op:K, 0, Args:KList)
@@ -230,9 +235,9 @@ module OCAML-LET-LETREC
         <nextLoc> N:Int => N +Int 1 </nextLoc>
 
     rule
-        <k> assign(BiEq(PaId(X:Id), V:KResult)) => . ...</k>
+        <k> assign(BiEq(PaId(X:Id), V:KResult)) => .K ...</k>
         <env>... X |-> L:Loc ...</env>
-        <store>... . => L |-> V ...</store>
+        <store>... .Map => L |-> V ...</store>
 
 endmodule
 
@@ -304,7 +309,7 @@ module OCAML-RECORDS
             ...</record>
         )
 
-    syntax Map ::= "getFields" "(" K ")"
+    syntax Map ::= getFields(K)   [function]
     rule getFields(RbSem(R1:K, R2:K)) => getFields(R1) getFields(R2)
     rule getFields(RbEq(Id:Id, K:K)) => Id |-> K
 
@@ -347,83 +352,76 @@ module OCAML-IO
 
 endmodule
 
+
+//Michael: this pattern matching might contains problems
+//because it requires associative matching in K, but K doesn't have associative matching anymore. 
 module OCAML-PATTERNS
     imports OCAML-INCLUDE
     imports OCAML-UNIT
 
-    syntax BagItem ::= K "<-" K
+    syntax KItem ::= K "<-" K
 
-    syntax BagItem ::= "pattern-failure" "(" K "," K ")"
+    syntax KItem ::= "pattern-failure" "(" K "," K ")"
 
-    rule
-        <patterns>... PaInt(I:Int) <- I => . ...</patterns>
+    rule PaInt(I:Int) <- I => .K [anywhere]
 
-    rule
-        <patterns>... PaId(X:LId) <- K:K => . ...</patterns>
-        <subst>... . => X |-> K ...</subst>
 
     rule
-        <patterns>... PaAny <- K:K => . ...</patterns>
+        <patterns> (PaId(X:LId) <- K:K) => .K ...</patterns>
+        <subst>... .Map => X |-> K ...</subst>
+
+    rule PaAny <- K:K => .K [anywhere]
+
+    rule PaId(UId:UId) <- UId => .K [anywhere]
+
+    rule PaId(IdUid("()")) <- unit => .K [anywhere]
+
+    rule PaTup(Pat:K) <- ExTup(Exp:K) => Pat <- Exp [anywhere]
+
+
+    rule PaCom(Pat1:K, Pat2:K) <- ExCom(Exp1:K, Exp2:K) =>
+               (Pat1 <- Exp1)
+               ~> (Pat2 <- Exp2) [anywhere]
+
+    rule ((PaApp(Pat1:K, Pat2:K) => flattenApp(PaApp(Pat1, Pat2), .KList)) <- _)
+         [anywhere]
+
+    rule apply(Pat:K, Pats:KList) <- cons(UId:UId, Args:KList)
+            => (Pat <- UId) ~> zip<-(Pats, Args)
+         [anywhere]
+
+    syntax KItem ::= "zip<-" "(" KList "," KList ")" [function]
+    rule zip<-(Pat,, Pats, Arg:K,, Args) => (Pat <- Arg) ~> zip<-(Pats, Args)
+    rule zip<-(.KList, .KList) => .K
 
     rule
-        <patterns>... PaId(UId:UId) <- UId => . ...</patterns>
-
-    rule
-        <patterns>... PaId(IdUid("()")) <- unit => . ...</patterns>
-
-    rule
-        <patterns>... PaTup(Pat:K) <- ExTup(Exp:K) => Pat <- Exp ...</patterns>
-
-    rule
-        <patterns>...
-            PaCom(Pat1:K, Pat2:K) <- ExCom(Exp1:K, Exp2:K) =>
-                (Pat1 <- Exp1)
-                (Pat2 <- Exp2)
-        ...</patterns>
-
-    rule
-        <patterns>...
-            (PaApp(Pat1:K, Pat2:K) => flattenApp(PaApp(Pat1, Pat2), .KList)) <- _
-        ...</patterns>
-
-    rule
-        <patterns>...
-            apply(Pat:K, Pats:KList) <- cons(UId:UId, Args:KList)
-            => (Pat <- UId) zip<-(Pats, Args)
-        ...</patterns>
-
-    syntax Bag ::= "zip<-" "(" KList "," KList ")"
-    rule zip<-(Pat,, Pats, Arg:K,, Args) => (Pat <- Arg) zip<-(Pats, Args)
-    rule zip<-(.KList, .KList) => .
-
-    rule
-        <patterns>... PaAli(Pat:K, PaId(X:Id)) <- Exp:K => Pat <- Exp ...</patterns>
-        <subst>... . => X |-> Exp ...</subst>
+        <patterns> PaAli(Pat:K, PaId(X:Id)) <- Exp:K => Pat <- Exp ...</patterns>
+        <subst>... .Map => X |-> Exp ...</subst>
 
     rule
         <patternAttempt>...
-            <patterns> (PaOrp(Pat1:K, Pat2:K) <- Exp:K) Rest:Bag </patterns>
+            <patterns> PaOrp(Pat1:K, Pat2:K) <- Exp:K ~> Rest:K </patterns>
             <subst> Subst:Map </subst>
         ...</patternAttempt>
         =>
         <patternAttempt>...
-            <patterns> (Pat1 <- Exp) Rest </patterns>
+            <patterns> Pat1 <- Exp ~> Rest:K </patterns>
             <subst> Subst </subst>
         ...</patternAttempt>
         <patternAttempt>...
-            <patterns> (Pat2 <- Exp) Rest </patterns>
+            <patterns> Pat2 <- Exp ~> Rest:K </patterns>
             <subst> Subst </subst>
         ...</patternAttempt>
 
     rule
-        <patterns> (Pat <- K) Rest:Bag => pattern-failure(Pat, K) </patterns>
+        <patterns> (Pat <- K) ~> Rest:K => pattern-failure(Pat, K) </patterns>
         when notBool (matches K Pat)
 
     rule
         <patternAttempt>...
             <patterns> pattern-failure(_, _) </patterns>
         ...</patternAttempt>
-        => .
+        => .Bag
 
     /*@ Unfortunately, we have to define the predicate below since we don't
     have a way of saying "when no other rule matches" */
@@ -490,7 +488,7 @@ module OCAML-MATCHING
         <matchK> binding => match-success(Exp, Subst) </matchK>
         <patternAttempts>
             (<patternAttempt>
-                <patterns> . </patterns>
+                <patterns> .K </patterns>
                 <subst> Subst:Map </subst>
             </patternAttempt>
             Rest:Bag) => .
@@ -529,17 +527,17 @@ module OCAML-HELPERS
     imports OCAML-INCLUDE
 
     rule
-        <assign> X:Id |-> K:K => . ...</assign>
+        <assign> X:Id |-> K:K => .Map ...</assign>
         <env> Env:Map => Env[X <- loc(N)] </env>
-        <store>... . => loc(N) |-> K ...</store>
+        <store>... .Map => loc(N) |-> K ...</store>
         <nextLoc> N:Int => N +Int 1 </nextLoc>
 
     rule
-        <k> assigning => . ...</k>
-        <assign> . </assign>
+        <k> assigning => .K ...</k>
+        <assign> .Map </assign>
 
     rule
-        <k> V:KResult ~> (env(Env:Map) => .) ...</k>
+        <k> V:KResult ~> (env(Env:Map) => .K) ...</k>
         <env> _ => Env </env>
 
 endmodule
@@ -552,28 +550,26 @@ module OCAML-INIT
     imports OCAML-EXCEPTIONS
     imports OCAML-IO
 
+    syntax KItem ::= preassign(Map)
+
     // TODO eventually this will go in a separate Pervasives module
     rule
-        <k> initEnv => assigning ...</k>
-        <assign> . =>
-            IdLid("+") |-> external(%addint, 2)
+        initEnv => preassign( IdLid("+") |-> external(%addint, 2)
             IdLid("-") |-> external(%subint, 2)
             IdLid("*") |-> external(%mulint, 2)
             IdLid("/") |-> external(%divint, 2)
             IdLid("mod") |-> external(%modint, 2)
-            IdLid("~-") |-> external(%negint, 1)
-
+            IdLid("~-") |-> external(%negint, 1))
+         ~> preassign(
             IdLid("not") |-> external(%boolnot, 1)
             IdLid("&&") |-> external(%sequand, 2)
             IdLid("||") |-> external(%sequor, 2)
-
             IdLid("raise") |-> external(%raise, 1)
-
             IdLid("ref") |-> external(%ref, 1)
+            IdLid("print_int") |-> external(%print-int, 1))
 
-            IdLid("print_int") |-> external(%print-int, 1)
-        </assign>
-
+    rule <k> preassign(M':Map) => assigning ...</k>
+        <assign> M:Map => M M':Map </assign>
 endmodule
 
 module OCAML-CLEANUP
@@ -585,16 +581,15 @@ module OCAML-CLEANUP
             <output> S:String </output>
         ...</T>
         =>
-        <result>...
+        <result>
             <exprResult> V </exprResult>
-            <output> S </output>
-        ...</result>
+            <outputInResult> S </outputInResult>
+        </result>
 
 endmodule
 
 module OCAML-SEMANTICS
     imports OCAML-INCLUDE
-
     imports OCAML-UNIT
     imports OCAML-ARITHMETIC
     imports OCAML-BOOLEANS
@@ -611,7 +606,9 @@ module OCAML-SEMANTICS
     imports OCAML-TOP-LEVEL
 
     imports OCAML-HELPERS
+
     imports OCAML-INIT
+
     imports OCAML-CLEANUP
 
 endmodule
