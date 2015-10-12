@@ -1,8 +1,10 @@
-module OCAML-SYNTAX-EXTRAS is
+requires "ocaml-syntax.k"
+
+module OCAML-SYNTAX-EXTRAS
 
     syntax KResult ::= Int | Bool | Id
 
-    syntax K
+    syntax KItem
       ::= "initEnv"
         | "binding"
         | "matching"
@@ -10,18 +12,18 @@ module OCAML-SYNTAX-EXTRAS is
         | "debug"
 
 
-    syntax Loc ::= "loc" "(" Int ")"
+    syntax Loc ::= loc(Int)
     syntax KResult ::= Loc
 
-    syntax KResult ::= "cons" "(" K "," List{K} ")"
+    syntax KResult ::= cons(K, KList)
 
-    syntax K ::= "env" "(" Map ")"
+    syntax KItem ::= env(Map)
 
-end module
+endmodule
 
-module OCAML-CONFIGURATION is
-    including OCAML-SYNTAX
-    including OCAML-SYNTAX-EXTRAS
+module OCAML-CONFIGURATION
+    imports OCAML-SYNTAX
+    imports OCAML-SYNTAX-EXTRAS
 
     configuration
         <T>
@@ -59,69 +61,69 @@ module OCAML-CONFIGURATION is
         </result>
 
 
-end module
+endmodule
 
-module OCAML-APPLICATION is
-    including OCAML-SYNTAX
+module OCAML-APPLICATION
+    imports OCAML-SYNTAX
 
-    syntax K ::= "apply" "(" K "," List{K} ")" [strict(1)]
-    syntax K ::= "flattenApp" "(" K "," List{K} ")"
+    syntax KItem ::= apply(K, KList) [strict(1)]
+    syntax KItem ::= flattenApp(K, KList)
 
-    rule ExApp(K1:K, K2:K) => flattenApp(ExApp(K1, K2), .List{K})
+    rule ExApp(K1:K, K2:K) => flattenApp(ExApp(K1, K2), .KList)
 
-    define flattenApp(ExApp(K:K, Arg:K), Args:List{K}) => flattenApp(K, Arg,, Args)
-    define flattenApp(PaApp(K:K, Arg:K), Args:List{K}) => flattenApp(K, Arg,, Args)
-    define flattenApp(K:K, Args:List{K}) => apply(K, Args)
-        when getKLabel(K) =/=KLabel 'ExApp`(_`,_`) orBool getKLabel(K) =/=KLabel 'PaApp`(_`,_`)
+    rule flattenApp(ExApp(K:K, Arg:K), Args:KList) => flattenApp(K, Arg,, Args)
+    rule flattenApp(PaApp(K:K, Arg:K), Args:KList) => flattenApp(K, Arg,, Args)
+    rule flattenApp(K:K, Args:KList) => apply(K, Args)
+        when getKLabel(K) =/=KLabel 'ExApp orBool getKLabel(K) =/=KLabel 'PaApp
 
-end module
+endmodule
 
-module OCAML-EXTERNAL is
-    including OCAML-APPLICATION
+module OCAML-EXTERNAL
+    imports OCAML-APPLICATION
 
-    syntax K ::= "external" "(" K "," Int ")"
-    syntax K ::= "externalClosure" "(" K "," Int "," List{K} ")"
+    syntax KItem ::= "external" "(" K "," Int ")"
+    syntax KItem ::= "externalClosure" "(" K "," Int "," KList ")"
 
-    define 'isKResult(externalClosure(_, Arity:Int, _)) => true
+    rule 'isKResult(externalClosure(_, Arity:Int, _)) => true
         when Arity >Int 0
 
     rule
         external(Op:K, Arity:Int)
-        => externalClosure(Op, Arity, .List{K})
+        => externalClosure(Op, Arity, .KList)
 
     syntax External ::= "%undefined"
 
-    context apply(externalClosure(_:External, _, _), _:List{K},, HOLE,, _:List{K}) [superheat]
+    context apply(externalClosure(_:External, _, _), _:KList,, HOLE,, _:KList) [superheat]
 
     rule
-        apply(externalClosure(Op:K, Arity:Int, Args:List{K}), NewArgs:List{K})
-        => externalClosure(Op, Arity -Int lengthList{K}(NewArgs), (Args,, NewArgs))
+        apply(externalClosure(Op:K, Arity:Int, Args:KList), NewArgs:KList)
+        => externalClosure(Op, Arity -Int size(NewArgs), (Args,, NewArgs))
 
     rule
-        externalClosure(Op:K, 0, Args:List{K})
+        externalClosure(Op:K, 0, Args:KList)
         => getKLabel(Op)(Args)
 
-end module
+endmodule
 
-module OCAML-INCLUDE is
-    including OCAML-SYNTAX
-    including OCAML-SYNTAX-EXTRAS
-    including OCAML-CONFIGURATION
-    including OCAML-APPLICATION
-    including OCAML-EXTERNAL
+module OCAML-INCLUDE
+    imports OCAML-SYNTAX
+    imports OCAML-SYNTAX-EXTRAS
+    imports OCAML-CONFIGURATION
+    imports OCAML-APPLICATION
+    imports OCAML-EXTERNAL
 
-end module
+endmodule
 
-module OCAML-UNIT is
-    including OCAML-INCLUDE
+module OCAML-UNIT
+    imports OCAML-INCLUDE
 
     syntax KResult ::= "unit"
     rule IdUid("()") => unit
 
-end module
+endmodule
 
-module OCAML-ARITHMETIC is
-    including OCAML-INCLUDE
+module OCAML-ARITHMETIC
+    imports OCAML-INCLUDE
 
     rule ExInt(I:Int) => I
 
@@ -140,10 +142,10 @@ module OCAML-ARITHMETIC is
     rule '%modint(I1:Int,, I2:Int) => I1 %Int I2
     rule '%negint(I:Int) => 0 -Int I
 
-end module
+endmodule
 
-module OCAML-BOOLEANS is
-    including OCAML-INCLUDE
+module OCAML-BOOLEANS
+    imports OCAML-INCLUDE
 
     rule IdUid("False") => false
     rule IdUid("True") => true
@@ -158,10 +160,10 @@ module OCAML-BOOLEANS is
     rule '%sequand(Exp1:K,, Exp2:K) => ExIfe(Exp1, Exp2, false)
     rule '%sequor(Exp1:K,, Exp2:K) => ExIfe(Exp1, true, Exp2)
 
-end module
+endmodule
 
-module OCAML-CONTROL-FLOW is
-    including OCAML-INCLUDE
+module OCAML-CONTROL-FLOW
+    imports OCAML-INCLUDE
 
     rule ExIfe(true, Exp:K, _) => Exp
     rule ExIfe(false, _, Exp:K) => Exp
@@ -172,10 +174,10 @@ module OCAML-CONTROL-FLOW is
     rule
         <k> ExSem(V:KResult, Exp:K) => Exp ...</k>
 
-end module
+endmodule
 
-module OCAML-LET-LETREC is
-    including OCAML-INCLUDE
+module OCAML-LET-LETREC
+    imports OCAML-INCLUDE
 
     //@ Variable lookup
     rule
@@ -184,8 +186,8 @@ module OCAML-LET-LETREC is
         <store>... L |-> K:K ...</store>
 
 
-    syntax K ::= "group" "(" K "," K ")"
-    syntax K ::= "letbody" "(" K ")"
+    syntax KItem ::= "group" "(" K "," K ")"
+    syntax KItem ::= "letbody" "(" K ")"
 
     // TODO this can probably be better
     rule
@@ -207,8 +209,8 @@ module OCAML-LET-LETREC is
             => ExMat(Exp1, McArr(Pat, ExNil, Exp2))
         ...</k>
 
-    syntax K ::= "recbind" "(" K ")"
-    syntax K ::= "assign" "(" K ")"
+    syntax KItem ::= "recbind" "(" K ")"
+    syntax KItem ::= "assign" "(" K ")"
 
     context assign(BiEq(_, HOLE))
 
@@ -224,7 +226,7 @@ module OCAML-LET-LETREC is
 
     rule
         <k> recbind(BiEq(PaId(X:Id), _)) => . ...</k>
-        <env> Env:Map => Env[loc(N) / X] </env>
+        <env> Env:Map => Env[X <- loc(N)] </env>
         <nextLoc> N:Int => N +Int 1 </nextLoc>
 
     rule
@@ -232,21 +234,21 @@ module OCAML-LET-LETREC is
         <env>... X |-> L:Loc ...</env>
         <store>... . => L |-> V ...</store>
 
-end module
+endmodule
 
-module OCAML-FUNCTIONS is
-    including OCAML-INCLUDE
+module OCAML-FUNCTIONS
+    imports OCAML-INCLUDE
 
     rule
         <k> ExId(UId:UId) => UId ...</k>
 
-    context apply(UId:UId, _:List{K},, HOLE,, _:List{K}) [superheat]
+    context apply(UId:UId, _:KList,, HOLE,, _:KList) [superheat]
 
-    rule apply(UId:UId, VS:List{KResult}) => cons(UId, VS)
+    rule apply(UId:UId, VS:KList) => cons(UId, VS)
 
     syntax KResult ::= "closure" "(" Map "," K ")"
 
-    context apply(closure(_, _), _:List{K},, HOLE,, _:List{K})
+    context apply(closure(_, _), _:KList,, HOLE,, _:KList)
 
     rule
         <k> ExFun(MC:K) => closure(Env, MC) ...</k>
@@ -257,18 +259,18 @@ module OCAML-FUNCTIONS is
         <env> Env => Env' </env>
 
     rule
-        <k> apply(closure(Env':Map, MC:K), V:KResult,, Args:List{KResult}) => apply(ExMat(V, MC), Args) ~> env(Env) ...</k>
+        <k> apply(closure(Env':Map, MC:K), V:KResult,, Args:KList) => apply(ExMat(V, MC), Args) ~> env(Env) ...</k>
         <env> Env => Env' </env>
 
-end module
+endmodule
 
-module OCAML-EXCEPTIONS is
-    including OCAML-INCLUDE
+module OCAML-EXCEPTIONS
+    imports OCAML-INCLUDE
 
     syntax External ::= "%raise"
 
-    syntax K ::= "x" "(" K "," K "," Map ")"
-    syntax K ::= "popx"
+    syntax KItem ::= "x" "(" K "," K "," Map ")"
+    syntax KItem ::= "popx"
 
     rule
         <k> (ExTry(Exp:K, MC:K) => Exp ~> popx) ~> K:K </k>
@@ -284,11 +286,11 @@ module OCAML-EXCEPTIONS is
         <xstack> x(K:K, MC:K, Env:Map) => . ...</xstack>
         <env> _ => Env </env>
 
-end module
+endmodule
 
-module OCAML-RECORDS is
-    including OCAML-INCLUDE
-    including OCAML-UNIT
+module OCAML-RECORDS
+    imports OCAML-INCLUDE
+    imports OCAML-UNIT
 
     syntax KResult ::= "recordEntry" "(" Int ")"
 
@@ -303,8 +305,8 @@ module OCAML-RECORDS is
         )
 
     syntax Map ::= "getFields" "(" K ")"
-    define getFields(RbSem(R1:K, R2:K)) => getFields(R1) getFields(R2)
-    define getFields(RbEq(Id:Id, K:K)) => Id |-> K
+    rule getFields(RbSem(R1:K, R2:K)) => getFields(R1) getFields(R2)
+    rule getFields(RbEq(Id:Id, K:K)) => Id |-> K
 
     rule
         <k> ExAcc(recordEntry(N:Int), ExId(X:Id)) => V ...</k>
@@ -319,21 +321,21 @@ module OCAML-RECORDS is
         <fields>... X |-> (_ => V) ...</fields>
         [supercool]
 
-end module
+endmodule
 
-module OCAML-REF is
-    including OCAML-INCLUDE
+module OCAML-REF
+    imports OCAML-INCLUDE
 
     syntax External ::= "%ref" // %makemutable
 
     rule
         <k> '%ref(V:KResult) => ExRec(RbEq(IdLid("val"), V), ExNil) ...</k>
 
-end module
+endmodule
 
-module OCAML-IO is
-    including OCAML-INCLUDE
-    including OCAML-UNIT
+module OCAML-IO
+    imports OCAML-INCLUDE
+    imports OCAML-UNIT
 
     syntax External
       ::= "%print-int"
@@ -343,11 +345,11 @@ module OCAML-IO is
         <output> S:String => S +String Int2String(I) </output>
         [supercool]
 
-end module
+endmodule
 
-module OCAML-PATTERNS is
-    including OCAML-INCLUDE
-    including OCAML-UNIT
+module OCAML-PATTERNS
+    imports OCAML-INCLUDE
+    imports OCAML-UNIT
 
     syntax BagItem ::= K "<-" K
 
@@ -381,18 +383,18 @@ module OCAML-PATTERNS is
 
     rule
         <patterns>...
-            (PaApp(Pat1:K, Pat2:K) => flattenApp(PaApp(Pat1, Pat2), .List{K})) <- _
+            (PaApp(Pat1:K, Pat2:K) => flattenApp(PaApp(Pat1, Pat2), .KList)) <- _
         ...</patterns>
 
     rule
         <patterns>...
-            apply(Pat:K, Pats:List{K}) <- cons(UId:UId, Args:List{K})
+            apply(Pat:K, Pats:KList) <- cons(UId:UId, Args:KList)
             => (Pat <- UId) zip<-(Pats, Args)
         ...</patterns>
 
-    syntax Bag ::= "zip<-" "(" List{K} "," List{K} ")"
-    define zip<-(Pat,, Pats, Arg:K,, Args) => (Pat <- Arg) zip<-(Pats, Args)
-    define zip<-(.List{K}, .List{K}) => .
+    syntax Bag ::= "zip<-" "(" KList "," KList ")"
+    rule zip<-(Pat,, Pats, Arg:K,, Args) => (Pat <- Arg) zip<-(Pats, Args)
+    rule zip<-(.KList, .KList) => .
 
     rule
         <patterns>... PaAli(Pat:K, PaId(X:Id)) <- Exp:K => Pat <- Exp ...</patterns>
@@ -425,25 +427,25 @@ module OCAML-PATTERNS is
 
     /*@ Unfortunately, we have to define the predicate below since we don't
     have a way of saying "when no other rule matches" */
-    op matches__ : K K -> Bool
-    eq matches _ PaId(LId:LId) = true
-    eq matches UId:UId PaId(UId) = true
-    eq matches unit PaId(IdUid("()")) = true
-    eq matches _ PaAny = true
-    eq matches _ PaAli(_, _) = true
-    eq matches _ PaTyc(_, _) = true
-    eq matches _ PaOrp(_, _) = true
-    eq matches ExTup(_) PaTup(_) = true
-    eq matches ExCom(_, _) PaCom(_, _) = true
-    eq matches I:Int PaInt(I) = true
-    eq matches . . = true
-    eq matches _ _ = false [owise]
+    syntax Bool ::= "matches" K K [function]
+    rule matches _ PaId(LId:LId) => true
+    rule matches UId:UId PaId(UId) => true
+    rule matches unit PaId(IdUid("()")) => true
+    rule matches _ PaAny => true
+    rule matches _ PaAli(_, _) => true
+    rule matches _ PaTyc(_, _) => true
+    rule matches _ PaOrp(_, _) => true
+    rule matches ExTup(_) PaTup(_) => true
+    rule matches ExCom(_, _) PaCom(_, _) => true
+    rule matches I:Int PaInt(I) => true
+    rule matches . . => true
+    rule matches _ _ => false [owise]
 
-end module
+endmodule
 
-module OCAML-MATCHING is
-    including OCAML-INCLUDE
-    including OCAML-PATTERNS
+module OCAML-MATCHING
+    imports OCAML-INCLUDE
+    imports OCAML-PATTERNS
 
     rule
         <k> ExMat(V:KResult, MC:K) => matching ...</k>
@@ -460,7 +462,7 @@ module OCAML-MATCHING is
         <assign> . => Subst </assign>
         <matchK> match-success(K:K, Subst:Map) => . </matchK>
 
-    syntax K
+    syntax KItem
       ::= "match-failure"
         | "match-success" "(" K "," Map ")"
 
@@ -505,11 +507,11 @@ module OCAML-MATCHING is
         ...</matchAnalysis>
         => .
 
-end module
+endmodule
 
-module OCAML-TOP-LEVEL is
+module OCAML-TOP-LEVEL
     //@ Top-level phrases in an OCaml module (also known as structure items?)
-    including OCAML-INCLUDE
+    imports OCAML-INCLUDE
 
     rule
         <k> StSem(K1:K, K2:K) => K1 ~> K2 ...</k>
@@ -521,14 +523,14 @@ module OCAML-TOP-LEVEL is
     rule
         <k> StExp(Exp:K) => Exp ...</k>
 
-end module
+endmodule
 
-module OCAML-HELPERS is
-    including OCAML-INCLUDE
+module OCAML-HELPERS
+    imports OCAML-INCLUDE
 
     rule
         <assign> X:Id |-> K:K => . ...</assign>
-        <env> Env:Map => Env[loc(N) / X] </env>
+        <env> Env:Map => Env[X <- loc(N)] </env>
         <store>... . => loc(N) |-> K ...</store>
         <nextLoc> N:Int => N +Int 1 </nextLoc>
 
@@ -540,15 +542,15 @@ module OCAML-HELPERS is
         <k> V:KResult ~> (env(Env:Map) => .) ...</k>
         <env> _ => Env </env>
 
-end module
+endmodule
 
-module OCAML-INIT is
-    including OCAML-INCLUDE
-    including OCAML-ARITHMETIC
-    including OCAML-BOOLEANS
-    including OCAML-REF
-    including OCAML-EXCEPTIONS
-    including OCAML-IO
+module OCAML-INIT
+    imports OCAML-INCLUDE
+    imports OCAML-ARITHMETIC
+    imports OCAML-BOOLEANS
+    imports OCAML-REF
+    imports OCAML-EXCEPTIONS
+    imports OCAML-IO
 
     // TODO eventually this will go in a separate Pervasives module
     rule
@@ -572,10 +574,10 @@ module OCAML-INIT is
             IdLid("print_int") |-> external(%print-int, 1)
         </assign>
 
-end module
+endmodule
 
-module OCAML-CLEANUP is
-    including OCAML-INCLUDE
+module OCAML-CLEANUP
+    imports OCAML-INCLUDE
 
     rule
         <T>...
@@ -588,28 +590,28 @@ module OCAML-CLEANUP is
             <output> S </output>
         ...</result>
 
-end module
+endmodule
 
-module OCAML-SEMANTICS is
-    including OCAML-INCLUDE
+module OCAML-SEMANTICS
+    imports OCAML-INCLUDE
 
-    including OCAML-UNIT
-    including OCAML-ARITHMETIC
-    including OCAML-BOOLEANS
-    including OCAML-CONTROL-FLOW
-    including OCAML-LET-LETREC
-    including OCAML-FUNCTIONS
-    including OCAML-EXCEPTIONS
-    including OCAML-RECORDS
-    including OCAML-REF
-    including OCAML-IO
-    including OCAML-PATTERNS
-    including OCAML-MATCHING
+    imports OCAML-UNIT
+    imports OCAML-ARITHMETIC
+    imports OCAML-BOOLEANS
+    imports OCAML-CONTROL-FLOW
+    imports OCAML-LET-LETREC
+    imports OCAML-FUNCTIONS
+    imports OCAML-EXCEPTIONS
+    imports OCAML-RECORDS
+    imports OCAML-REF
+    imports OCAML-IO
+    imports OCAML-PATTERNS
+    imports OCAML-MATCHING
 
-    including OCAML-TOP-LEVEL
+    imports OCAML-TOP-LEVEL
 
-    including OCAML-HELPERS
-    including OCAML-INIT
-    including OCAML-CLEANUP
+    imports OCAML-HELPERS
+    imports OCAML-INIT
+    imports OCAML-CLEANUP
 
-end module
+endmodule

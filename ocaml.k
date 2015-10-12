@@ -1,6 +1,6 @@
-load ocaml-syntax
-load ocaml-semantics
+requires "ocaml-syntax.k"
+requires "ocaml-semantics.k"
 
-module OCAML is
-    including OCAML-SEMANTICS
-end module
+module OCAML
+    imports OCAML-SEMANTICS
+endmodule
