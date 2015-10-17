@@ -1,4 +1,5 @@
 requires "ocaml-syntax.k"
+requires "ocaml-abstract-syntax.k"
 
 module OCAML-SYNTAX-EXTRAS
 
@@ -21,13 +22,28 @@ module OCAML-SYNTAX-EXTRAS
 
 endmodule
 
+module OCAML-TRANS
+    imports OCAML-SYNTAX
+    imports OCAML-ABSTRACT-SYNTAX
+
+    syntax KItem ::= translation(Exp) [function]
+
+    rule translation(I:Int) => ExInt(I)
+    rule translation(E1:Exp + E2:Exp) => ExApp(ExApp(IdLid("+"), translation(E1)),translation(E2))
+    rule translation(E1:Exp E2:Exp) => ExApp(translation(E1),translation(E2))
+
+endmodule
+
+
 module OCAML-CONFIGURATION
     imports OCAML-SYNTAX
+    imports OCAML-TRANS
+    imports OCAML-ABSTRACT-SYNTAX
     imports OCAML-SYNTAX-EXTRAS
 
     configuration
         <T>
-            <k color="LightGreen"> initEnv ~> $PGM:K </k>
+            <k color="LightGreen"> initEnv ~> translation($PGM:Exp) </k>
             <env color="LightSkyBlue"> .Map </env>
             <store color="LightSteelBlue"> .Map </store>
             <xstack color="LightSlateBlue"> .K </xstack>
@@ -65,6 +81,7 @@ endmodule
 
 module OCAML-APPLICATION
     imports OCAML-SYNTAX
+    imports OCAML-ABSTRACT-SYNTAX
 
     syntax KItem ::= apply(K, KList) [strict(1)]
     syntax KItem ::= flattenApp(K, KList)
@@ -112,6 +129,7 @@ endmodule
 
 module OCAML-INCLUDE
     imports OCAML-SYNTAX
+    imports OCAML-ABSTRACT-SYNTAX
     imports OCAML-SYNTAX-EXTRAS
     imports OCAML-CONFIGURATION
     imports OCAML-APPLICATION
@@ -589,6 +607,7 @@ module OCAML-CLEANUP
 endmodule
 
 module OCAML-SEMANTICS
+    imports OCAML-TRANS
     imports OCAML-INCLUDE
     imports OCAML-UNIT
     imports OCAML-ARITHMETIC
