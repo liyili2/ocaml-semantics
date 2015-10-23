@@ -26,15 +26,24 @@ module OCAML-TRANS
     imports OCAML-SYNTAX
     imports OCAML-ABSTRACT-SYNTAX
 
-    syntax KItem ::= translation(Exp) [function]
-
+    syntax KItem ::= translation(Exp)  [function]
+    syntax KItem ::= translation(BExp) [function]
 
  rule translation(I:Int) => ExInt(I)
+// rule translation(false) => ExInt(0)
+// rule translation(true) => ExInt(1) 
+
+
+//Binary Integer Operator Expressions
  rule translation(E1:Exp + E2:Exp) => ExApp(ExApp(IdLid("+"), translation(E1)),translation(E2))
  rule translation(E1:Exp - E2:Exp) => ExApp(ExApp(IdLid("-"), translation(E1)),translation(E2))
  rule translation(E1:Exp * E2:Exp) => ExApp(ExApp(IdLid("*"), translation(E1)),translation(E2))
  rule translation(E1:Exp / E2:Exp) => ExApp(ExApp(IdLid("/"), translation(E1)),translation(E2))
- 
+
+// Binary boolean Operator Expressions
+ rule translation(B1:BExp || B2:BExp) => McOr(translation(B1), translation(B2))
+ rule translation(B1:BExp && B2:BExp) => BiAnd(translation(B1), translation(B2))
+
 
  rule translation(E1:Exp E2:Exp) => ExApp(translation(E1),translation(E2))
 

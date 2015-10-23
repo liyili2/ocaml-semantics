@@ -1,6 +1,6 @@
 module OCAML-SYNTAX
 
-    syntax Exp ::= Int
+    syntax AExp ::= Int
 		 | "(" Exp ")" [bracket]
                  | Exp "*" Exp [left]
 		 | Exp "/" Exp [left]
@@ -8,7 +8,12 @@ module OCAML-SYNTAX
 		 | Exp "-" Exp [left]
 		  > Exp Exp [left]
 
+    syntax BExp ::= Bool 
+		| "(" BExp ")" [bracket]
+		| BExp "||" BExp [left]
+		| BExp "&&" BExp [left] 
 
+    syntax Exp ::= AExp | BExp 	
 
 
 endmodule
