@@ -28,9 +28,15 @@ module OCAML-TRANS
 
     syntax KItem ::= translation(Exp) [function]
 
-    rule translation(I:Int) => ExInt(I)
-    rule translation(E1:Exp + E2:Exp) => ExApp(ExApp(IdLid("+"), translation(E1)),translation(E2))
-    rule translation(E1:Exp E2:Exp) => ExApp(translation(E1),translation(E2))
+
+ rule translation(I:Int) => ExInt(I)
+ rule translation(E1:Exp + E2:Exp) => ExApp(ExApp(IdLid("+"), translation(E1)),translation(E2))
+ rule translation(E1:Exp - E2:Exp) => ExApp(ExApp(IdLid("-"), translation(E1)),translation(E2))
+ rule translation(E1:Exp * E2:Exp) => ExApp(ExApp(IdLid("*"), translation(E1)),translation(E2))
+ rule translation(E1:Exp / E2:Exp) => ExApp(ExApp(IdLid("/"), translation(E1)),translation(E2))
+ 
+
+ rule translation(E1:Exp E2:Exp) => ExApp(translation(E1),translation(E2))
 
 endmodule
 
