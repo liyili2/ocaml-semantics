@@ -56,4 +56,25 @@ module OCAML-ABSTRACT-SYNTAX
     // TODO maybe we should fix this?
     syntax O ::= "None"
 
+    syntax Element ::= val(K) [strict]
+    syntax ElementResult ::= valValue(K)
+    syntax Element ::= ElementResult
+    syntax KResult ::= ElementResult
+    rule val(K:KResult) => valValue(K) [structural]
+
+    syntax ElemList ::= List{Element,","} [strict]
+    syntax Int ::= lengthOfList(ElemList) [function]
+    rule lengthOfList(.ElemList) => 0
+    rule lengthOfList(val(K:K),L:ElemList) => 1 +Int lengthOfList(L)
+
+    syntax ElemList ::= combineElemList(ElemList, ElemList) [function]
+
+    rule combineElemList(.ElemList,Bs:ElemList) => Bs
+    rule combineElemList((A:Element,As:ElemList),Bs:ElemList) => A,combineElemList(As,Bs)
+
+    syntax KList ::= toKList(ElemList) [function]
+    rule toKList(.ElemList) => .KList
+    rule toKList(valValue(V:K),Vl:ElemList) => V,, toKList(Vl)
+    rule toKList(val(V:K),Vl:ElemList) => V,, toKList(Vl)
+
 endmodule
