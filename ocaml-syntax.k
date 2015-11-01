@@ -13,7 +13,24 @@ module OCAML-SYNTAX
 		| BExp "||" BExp [left]
 		| BExp "&&" BExp [left] 
 
-    syntax Exp ::= AExp | BExp 	
+    syntax Exp ::= AExp | BExp 	| FunExp
 
+    syntax Label ::= //lowercase ident
+
+
+
+    syntax Pattern ::= Id 
+		| "_"
+		| Int
+		| "(" Pattern ")" [bracket]
+		| Pattern "as" Id
+//		| "(" Pattern ":" TypeExpr ")"
+		| Pattern "|" Pattern
+//		| Constr Pattern
+//     		...
+
+
+    syntax FunExp ::= "fun" "[" Label "]" Pattern "->" FunExp
+			| "fun" "[" Label "]" Pattern "->" Exp
 
 endmodule
