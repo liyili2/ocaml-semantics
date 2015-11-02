@@ -16,8 +16,7 @@ module OCAML-SYNTAX
     syntax Exp ::= AExp | BExp 	| FunExp
 
     syntax Label ::= Token{[a-z]+}  [onlyLabel]
-
-
+                   | "Empty"
 
     syntax Pattern ::= Id 
 		| "_"
@@ -31,5 +30,6 @@ module OCAML-SYNTAX
 
 
     syntax FunExp ::= "fun" "[" Label "]" Pattern "->" Exp
+                    | "fun" Pattern "->" Exp
 
 endmodule
