@@ -34,5 +34,5 @@ module OCAML-SYNTAX
 			 "fun" Id "->" Exp
 		//	| "fun" "[" Label "]" Pattern "->" FunExp
 			| "fun" "[" Label "]" Pattern "->" Exp
-
+			| "(" FunExp ")" [bracket]
 endmodule
