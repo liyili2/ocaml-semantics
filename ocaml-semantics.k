@@ -2,6 +2,8 @@ requires "ocaml-syntax.k"
 requires "ocaml-abstract-syntax.k"
 
 module OCAML-SYNTAX-EXTRAS
+    imports OCAML-SYNTAX
+    imports OCAML-ABSTRACT-SYNTAX
 
     syntax KResult ::= Int | Bool | Id
 
@@ -16,7 +18,7 @@ module OCAML-SYNTAX-EXTRAS
     syntax Loc ::= loc(Int)
     syntax KResult ::= Loc
 
-    syntax KResult ::= cons(K, KList)
+    syntax KResult ::= cons(K, ElemList)
 
     syntax KItem ::= env(Map)
 
@@ -35,10 +37,10 @@ module OCAML-TRANS
 
 
 //Binary Integer Operator Expressions
- rule translation(E1:Exp + E2:Exp) => ExApp(ExApp(IdLid("+"), translation(E1)),translation(E2))
- rule translation(E1:Exp - E2:Exp) => ExApp(ExApp(IdLid("-"), translation(E1)),translation(E2))
- rule translation(E1:Exp * E2:Exp) => ExApp(ExApp(IdLid("*"), translation(E1)),translation(E2))
- rule translation(E1:Exp / E2:Exp) => ExApp(ExApp(IdLid("/"), translation(E1)),translation(E2))
+ rule translation(E1:Exp + E2:Exp) => ExApp(ExApp(ExId(IdLid("+")), translation(E1)),translation(E2))
+ rule translation(E1:Exp - E2:Exp) => ExApp(ExApp(ExId(IdLid("-")), translation(E1)),translation(E2))
+ rule translation(E1:Exp * E2:Exp) => ExApp(ExApp(ExId(IdLid("*")), translation(E1)),translation(E2))
+ rule translation(E1:Exp / E2:Exp) => ExApp(ExApp(ExId(IdLid("/")), translation(E1)),translation(E2))
 
 // Binary boolean Operator Expressions
  rule translation(B1:BExp || B2:BExp) => McOr(translation(B1), translation(B2))
@@ -98,47 +100,51 @@ module OCAML-APPLICATION
     imports OCAML-SYNTAX
     imports OCAML-ABSTRACT-SYNTAX
 
-    syntax KItem ::= apply(K, KList) [strict(1)]
-    syntax KItem ::= flattenApp(K, KList)
+    syntax KItem ::= apply(K, K) [strict]
+    //syntax KItem ::= dealWithExternal(K) [strict]
+    syntax KItem ::= flattenApp(K, ElemList)
 
-    rule ExApp(K1:K, K2:K) => flattenApp(ExApp(K1, K2), .KList)
-
-    rule flattenApp(ExApp(K:K, Arg:K), Args:KList) => flattenApp(K, Arg,, Args)
-    rule flattenApp(PaApp(K:K, Arg:K), Args:KList) => flattenApp(K, Arg,, Args)
-    rule flattenApp(K:K, Args:KList) => apply(K, Args)
+    rule ExApp(K1:K, K2:K) => apply(K1,K2)
+/*
+    rule flattenApp(ExApp(K:K, Arg:K), Args:ElemList) => flattenApp(K, val(Arg), Args)
+    rule flattenApp(PaApp(K:K, Arg:K), Args:ElemList) => flattenApp(K, val(Arg), Args)
+    rule flattenApp(K:K, Args:ElemList) => dealWithExternal(apply(K, Args))
         when getKLabel(K) =/=KLabel 'ExApp orBool getKLabel(K) =/=KLabel 'PaApp
-
+*/
 endmodule
 
 module OCAML-EXTERNAL
     imports OCAML-APPLICATION
 
     syntax KItem ::= "external" "(" K "," Int ")"
-    syntax KItem ::= "externalClosure" "(" K "," Int "," KList ")"
+    syntax KResult ::= "externalClosure" "(" K "," Int "," ElemList ")"
+    //syntax KResult ::= externalClosureResult(K, Int, ElemList)
 
     syntax Int ::= lengthKList(KList) [function]
 
     rule lengthKList(.KList) => 0
     rule lengthKList((K:K ,, KL:KList)) => 1 +Int lengthKList(KL)
 
-    rule 'isKResult(externalClosure(_, Arity:Int, _)) => true
-        when Arity >Int 0
+    /*rule 'isKResult(externalClosure(_, Arity:Int, _)) => true
+        when Arity >Int 0 */
 
     rule
         external(Op:K, Arity:Int)
-        => externalClosure(Op, Arity, .KList)
+        => externalClosure(Op, Arity, .ElemList)
+        when Arity >=Int 0
 
     syntax External ::= "%undefined"
 
-    context apply(externalClosure(_:External, _, _), _:KList,, HOLE,, _:KList) [superheat]
+    //context apply(externalClosure(_:External, _, _), _:KList,, HOLE,, _:KList) [superheat]
 
     rule
-        apply(externalClosure(Op:K, Arity:Int, Args:KList), NewArgs:KList)
-        => externalClosure(Op, Arity -Int lengthKList(NewArgs), (Args,, NewArgs))
-
-    rule
-        externalClosure(Op:K, 0, Args:KList)
-        => getKLabel(Op)(Args)
+        apply(externalClosure(Op:K, Arity:Int, Args:ElemList), NewArgs:KResult)
+        => externalClosure(Op, Arity -Int 1, combineElemList(Args, valValue(NewArgs)))
+        when Arity >Int 1
+  
+    rule apply(externalClosure(Op:K, Arity:Int, Args:ElemList), NewArgs:KResult)
+        => getKLabel(Op)(toKList(combineElemList(Args, valValue(NewArgs))))
+        when Arity ==Int 1
 
 endmodule
 
@@ -280,24 +286,26 @@ module OCAML-FUNCTIONS
     rule
         <k> ExId(UId:UId) => UId ...</k>
 
-    context apply(UId:UId, _:KList,, HOLE,, _:KList) [superheat]
+    //context apply(UId:UId, _:KList,, HOLE,, _:KList) [superheat]
 
-    rule apply(UId:UId, VS:KList) => cons(UId, VS)
+    rule apply(UId:UId, VS:ElemList) => cons(UId, VS)
 
     syntax KResult ::= "closure" "(" Map "," K ")"
 
-    context apply(closure(_, _), _:KList,, HOLE,, _:KList)
+    //context apply(closure(_, _), _:KList,, HOLE,, _:KList)
 
     rule
         <k> ExFun(MC:K) => closure(Env, MC) ...</k>
         <env> Env:Map </env>
 
+    rule translation(fun X -> E)  => ExFun(fun X -> E) 
+
     rule
-        <k> apply(closure(Env':Map, MC:K), V:KResult) => ExMat(V, MC) ~> env(Env) ...</k>
+        <k> apply(closure(Env':Map, MC:K), valValue(V:KResult)) => ExMat(V, MC) ~> env(Env) ...</k>
         <env> Env => Env' </env>
 
     rule
-        <k> apply(closure(Env':Map, MC:K), V:KResult,, Args:KList) => apply(ExMat(V, MC), Args) ~> env(Env) ...</k>
+        <k> apply(closure(Env':Map, MC:K), valValue(V:KResult), Args:ElemList) => apply(ExMat(V, MC), Args) ~> env(Env) ...</k>
         <env> Env => Env' </env>
 
 endmodule
@@ -416,16 +424,17 @@ module OCAML-PATTERNS
                (Pat1 <- Exp1)
                ~> (Pat2 <- Exp2) [anywhere]
 
-    rule ((PaApp(Pat1:K, Pat2:K) => flattenApp(PaApp(Pat1, Pat2), .KList)) <- _)
+    rule ((PaApp(Pat1:K, Pat2:K) => flattenApp(PaApp(Pat1, Pat2), .ElemList)) <- _)
          [anywhere]
 
-    rule apply(Pat:K, Pats:KList) <- cons(UId:UId, Args:KList)
+    rule apply(Pat:K, Pats:ElemList) <- cons(UId:UId, Args:ElemList)
             => (Pat <- UId) ~> zip<-(Pats, Args)
          [anywhere]
 
-    syntax KItem ::= "zip<-" "(" KList "," KList ")" [function]
-    rule zip<-(Pat,, Pats, Arg:K,, Args) => (Pat <- Arg) ~> zip<-(Pats, Args)
-    rule zip<-(.KList, .KList) => .K
+    syntax KItem ::= "zip<-" "(" ElemList "," ElemList ")" [function]
+    rule zip<-(valValue(Pat:K), Pats:ElemList, valValue(Arg:K), Args:ElemList)
+                  => (Pat <- Arg) ~> zip<-(Pats, Args)
+    rule zip<-(.ElemList, .ElemList) => .K
 
     rule
         <patterns> PaAli(Pat:K, PaId(X:Id)) <- Exp:K => Pat <- Exp ...</patterns>
