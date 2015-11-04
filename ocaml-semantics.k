@@ -37,10 +37,10 @@ module OCAML-TRANS
 
 
 //Binary Integer Operator Expressions
- rule translation(E1:Exp + E2:Exp) => ExApp(ExApp(ExId(IdLid("+")), translation(E1)),translation(E2))
- rule translation(E1:Exp - E2:Exp) => ExApp(ExApp(ExId(IdLid("-")), translation(E1)),translation(E2))
- rule translation(E1:Exp * E2:Exp) => ExApp(ExApp(ExId(IdLid("*")), translation(E1)),translation(E2))
- rule translation(E1:Exp / E2:Exp) => ExApp(ExApp(ExId(IdLid("/")), translation(E1)),translation(E2))
+ rule translation(E1:AExp + E2:AExp) => ExApp(ExApp(ExId(IdLid("+")), translation(E1)),translation(E2))
+ rule translation(E1:AExp - E2:AExp) => ExApp(ExApp(ExId(IdLid("-")), translation(E1)),translation(E2))
+ rule translation(E1:AExp * E2:AExp) => ExApp(ExApp(ExId(IdLid("*")), translation(E1)),translation(E2))
+ rule translation(E1:AExp / E2:AExp) => ExApp(ExApp(ExId(IdLid("/")), translation(E1)),translation(E2))
 
 // Binary boolean Operator Expressions
  rule translation(B1:BExp || B2:BExp) => McOr(translation(B1), translation(B2))

@@ -1,19 +1,18 @@
 module OCAML-SYNTAX
 
     syntax AExp ::= Int
-		 | "(" Exp ")" [bracket]
-                 | Exp "*" Exp [left]
-		 | Exp "/" Exp [left]
-		 > Exp "+" Exp [left]
-		 | Exp "-" Exp [left]
-		  > Exp Exp [left]
+		 | "(" AExp ")" [bracket]
+                 | AExp "*" AExp [left]
+		 | AExp "/" AExp [left]
+		 > AExp "+" AExp [left]
+		 | AExp "-" AExp [left]
 
     syntax BExp ::= Bool 
 		| "(" BExp ")" [bracket]
 		| BExp "||" BExp [left]
 		| BExp "&&" BExp [left] 
 
-    syntax Exp ::= AExp | BExp 	| FunExp
+    syntax Exp ::= AExp | BExp 	| FunExp | Exp Exp
 
 
 
@@ -21,7 +20,7 @@ module OCAML-SYNTAX
                    | "Empty"
 
     syntax Pattern ::= Id 
-		| "_"
+		| "_"  [onlyLabel, klabel('patternUnderLine)]
 		| Int
 		| "(" Pattern ")" [bracket]
 		| Pattern "as" Id
