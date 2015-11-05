@@ -12,7 +12,7 @@ module OCAML-SYNTAX
 		| BExp "||" BExp [left]
 		| BExp "&&" BExp [left] 
 
-    syntax Exp ::= AExp | BExp 	| FunExp | Exp Exp
+    syntax Exp ::= AExp | BExp 	| FunExp | Exp Exp | Id
 
 
 
@@ -32,6 +32,7 @@ module OCAML-SYNTAX
 
     syntax FunExp ::= //"fun" Id "->" FunExp
 			 "fun" Id "->" Exp
+		//	| "fun" "x" "->" Exp
 		//	| "fun" "[" Label "]" Pattern "->" FunExp
 			| "fun" "[" Label "]" Pattern "->" Exp
 			| "(" FunExp ")" [bracket]
