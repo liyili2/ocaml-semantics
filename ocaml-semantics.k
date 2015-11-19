@@ -48,6 +48,7 @@ module OCAML-TRANS
 
 
  rule translation(E1:Exp E2:Exp) => ExApp(translation(E1),translation(E2))
+ rule translation(fun X -> E)  => ExFun(fun X -> E) 
 
 endmodule
 
@@ -298,7 +299,7 @@ module OCAML-FUNCTIONS
         <k> ExFun(MC:K) => closure(Env, MC) ...</k>
         <env> Env:Map </env>
 
-    rule translation(fun X -> E)  => ExFun(fun X -> E) 
+
 
     rule
         <k> apply(closure(Env':Map, MC:K), valValue(V:KResult)) => ExMat(V, MC) ~> env(Env) ...</k>
@@ -314,14 +315,13 @@ module OCAML-EXCEPTIONS
     imports OCAML-INCLUDE
 
     syntax External ::= "%raise"
-
-    syntax KItem ::= "x" "(" K "," K "," Map ")"
+    syntax KItem ::= xex(K, K, Map) [avoid]
     syntax KItem ::= "popx"
 
     rule
         <k> (ExTry(Exp:K, MC:K) => Exp ~> popx) ~> K:K </k>
         <env> Env:Map </env>
-        <xstack> . => x(K, MC, Env) ...</xstack>
+        <xstack> . => xex(K, MC, Env) ...</xstack>
 
     rule
         <k> V:KResult ~> popx => V ...</k>
@@ -329,7 +329,7 @@ module OCAML-EXCEPTIONS
 
     rule
         <k> '%raise(V:KResult) ~> _ => ExMat(V, McOr(MC, McArr(PaAny, ExNil, 'primRaise(V)))) ~> K </k>
-        <xstack> x(K:K, MC:K, Env:Map) => . ...</xstack>
+        <xstack> xex(K:K, MC:K, Env:Map) => . ...</xstack>
         <env> _ => Env </env>
 
 endmodule
@@ -633,13 +633,16 @@ endmodule
 module OCAML-SEMANTICS
     imports OCAML-TRANS
     imports OCAML-INCLUDE
+
     imports OCAML-UNIT
     imports OCAML-ARITHMETIC
     imports OCAML-BOOLEANS
+
     imports OCAML-CONTROL-FLOW
     imports OCAML-LET-LETREC
     imports OCAML-FUNCTIONS
     imports OCAML-EXCEPTIONS
+
     imports OCAML-RECORDS
     imports OCAML-REF
     imports OCAML-IO
