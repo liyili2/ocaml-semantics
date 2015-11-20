@@ -49,7 +49,7 @@ module OCAML-ABSTRACT-SYNTAX
     syntax O ::= StExp(K) // expr
     syntax O ::= StSem(K, K) // st1 ;; st2
     syntax O ::= StExc(K, K) // exception
-
+    syntax KItem ::= K "<-" K
     syntax O ::= TyId(K)
 
     // option types are sometimes used in the AST

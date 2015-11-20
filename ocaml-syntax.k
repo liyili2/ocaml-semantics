@@ -12,9 +12,20 @@ module OCAML-SYNTAX
 		| BExp "||" BExp [left]
 		| BExp "&&" BExp [left] 
 
-    syntax Exp ::= AExp | BExp 	| FunExp | Exp Exp | Id
+    syntax Exp ::= AExp | BExp 	| FunExp
+                 | Id
+                 | Exp Exp [left]
+                 | Exp ";" Exp [left]
+                 | "if" Exp "then" Exp "else" Exp
+                 | "let" Exp "=" Exp "in" Exp
+                 | "let" "rec" Exp "=" Exp "in" Exp
+                 | "match" Exp "with" Exp "->" Exp
+                 | "try" Exp "with" Exp "->" Exp
+                 | "[" Exps "]"
+                 | "(" Tuples ")"
 
-
+    syntax Exps  ::= List{Exp,";"}
+    syntax Tuples ::= List{Exp,","}
 
     syntax Label ::= Token{[a-z]+}  [onlyLabel]
                    | "Empty"

@@ -29,6 +29,8 @@ module OCAML-TRANS
     imports OCAML-ABSTRACT-SYNTAX
 
     syntax KItem ::= translation(Exp)  [function]
+    syntax KItem ::= translations(Exps)  [function]
+    syntax KItem ::= translationTuples(Tuples)  [function]
     syntax KItem ::= translation(BExp) [function]
 
  rule translation(I:Int) => ExInt(I)
@@ -48,7 +50,26 @@ module OCAML-TRANS
 
 
  rule translation(E1:Exp E2:Exp) => ExApp(translation(E1),translation(E2))
- rule translation(fun X -> E)  => ExFun(fun X -> E) 
+ rule translation(fun X -> E)  => ExFun(PaId(X) <- translation(E)) 
+ rule translation(E1:Exp ; E2:Exp)  => ExSem(translation(E1),translation(E2))
+ rule translation(if E1 then E2 else E3)
+                      => ExIfe(translation(E1),translation(E2),translation(E3))
+ rule translation(let E1 = E2 in E3)
+                      => ExLet(BiEq(translation(E1),translation(E2)),translation(E3))
+ rule translation(let rec E1 = E2 in E3)
+                      => ExRec(RbEq(translation(E1),translation(E2)),translation(E3))
+ rule translation(match E1 with E2 -> E3)
+                      => ExMat(translation(E3),translation(E1) <- translation(E2))
+ rule translation(try E1 with E2 -> E3)
+                      => ExTry(translation(E3),translation(E1) <- translation(E2))
+ rule translation([ E:Exps ]) => translations(E)
+ rule translations(.Exps) => ExNil
+ rule translations(E:Exp ; Es:Exps) => 'ExCom(translation(E),, translations(Es))
+ rule translation(( E:Tuples )) => translationTuples(E)
+ rule translationTuples(.Tuples) => ExNil
+ rule translationTuples(E:Exp , Es:Tuples) => 'ExTup(translation(E),, translationTuples(Es))
+     when Es =/=K .Tuples
+ rule translationTuples(E:Exp) => translation(E)
 
 endmodule
 
@@ -399,8 +420,6 @@ endmodule
 module OCAML-PATTERNS
     imports OCAML-INCLUDE
     imports OCAML-UNIT
-
-    syntax KItem ::= K "<-" K
 
     syntax KItem ::= "pattern-failure" "(" K "," K ")"
 
