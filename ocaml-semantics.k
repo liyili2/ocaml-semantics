@@ -31,6 +31,7 @@ module OCAML-TRANS
     syntax KItem ::= translation(Exp)  [function]
     syntax KItem ::= translations(Exps)  [function]
     syntax KItem ::= translationTuples(Tuples)  [function]
+    syntax KItem ::= translationTupleNext(TupleNext)  [function]
     syntax KItem ::= translation(BExp) [function]
 
  rule translation(I:Int) => ExInt(I)
@@ -51,8 +52,8 @@ module OCAML-TRANS
 
  rule translation(E1:Exp E2:Exp) => ExApp(translation(E1),translation(E2))
  rule translation(fun X -> E)  => ExFun(PaId(X) <- translation(E)) 
- rule translation(E1:Exp ; E2:Exp)  => ExSem(translation(E1),translation(E2))
- rule translation(if E1 then E2 else E3)
+ rule translation('ocamlSeq(E1:Exp,, E2:Exp))  => ExSem(translation(E1),translation(E2))
+ rule translation('ocamlIf(E1,, E2,, E3))
                       => ExIfe(translation(E1),translation(E2),translation(E3))
  rule translation(let E1 = E2 in E3)
                       => ExLet(BiEq(translation(E1),translation(E2)),translation(E3))
@@ -62,14 +63,13 @@ module OCAML-TRANS
                       => ExMat(translation(E3),translation(E1) <- translation(E2))
  rule translation(try E1 with E2 -> E3)
                       => ExTry(translation(E3),translation(E1) <- translation(E2))
- rule translation([ E:Exps ]) => translations(E)
+ rule translation('ocamlList(E:Exps)) => translations(E)
  rule translations(.Exps) => ExNil
  rule translations(E:Exp ; Es:Exps) => 'ExCom(translation(E),, translations(Es))
- rule translation(( E:Tuples )) => translationTuples(E)
- rule translationTuples(.Tuples) => ExNil
- rule translationTuples(E:Exp , Es:Tuples) => 'ExTup(translation(E),, translationTuples(Es))
-     when Es =/=K .Tuples
- rule translationTuples(E:Exp) => translation(E)
+ rule translation('tuple(E:Tuples)) => translationTuples(E)
+ rule translationTuples(E:Exp , T:TupleNext) => 'ExTup(translation(E),, translationTupleNext(T))
+ rule translationTupleNext(E:Exp) => translation(E)
+ rule translationTupleNext(E:Exp , T:TupleNext) => 'ExTup(translation(E),, translationTupleNext(T))
 
 endmodule
 
@@ -126,7 +126,7 @@ module OCAML-APPLICATION
     //syntax KItem ::= dealWithExternal(K) [strict]
     syntax KItem ::= flattenApp(K, ElemList)
 
-    rule ExApp(K1:K, K2:K) => apply(K1,K2)
+    rule ExApp(K1:K, K2:K) => apply(K1,val(K2))
 /*
     rule flattenApp(ExApp(K:K, Arg:K), Args:ElemList) => flattenApp(K, val(Arg), Args)
     rule flattenApp(PaApp(K:K, Arg:K), Args:ElemList) => flattenApp(K, val(Arg), Args)

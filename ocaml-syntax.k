@@ -15,17 +15,18 @@ module OCAML-SYNTAX
     syntax Exp ::= AExp | BExp 	| FunExp
                  | Id
                  | Exp Exp [left]
-                 | Exp ";" Exp [left]
-                 | "if" Exp "then" Exp "else" Exp
+                 | Exp ";" Exp [left,onlyLabel,klabel('ocamlSeq)]
+                 | "if" Exp "then" Exp "else" Exp  [klabel('ocamlIf),onlyLabel]
                  | "let" Exp "=" Exp "in" Exp
                  | "let" "rec" Exp "=" Exp "in" Exp
                  | "match" Exp "with" Exp "->" Exp
                  | "try" Exp "with" Exp "->" Exp
-                 | "[" Exps "]"
-                 | "(" Tuples ")"
+                 | "[" Exps "]"   [klabel('ocamlList),onlyLabel]
+                 | "(" Tuples ")" [klabel('tuple),onlyLabel]
 
     syntax Exps  ::= List{Exp,";"}
-    syntax Tuples ::= List{Exp,","}
+    syntax Tuples ::= Exp "," TupleNext [klabel('tupleFirst)]
+    syntax TupleNext ::= Exp | Exp "," TupleNext [klabel('tupleSecond)]
 
     syntax Label ::= Token{[a-z]+}  [onlyLabel]
                    | "Empty"
