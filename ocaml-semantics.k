@@ -552,13 +552,13 @@ module OCAML-MATCHING
                 <patterns> .K </patterns>
                 <subst> Subst:Map </subst>
             </patternAttempt>
-            Rest:Bag) => .
+            Rest:Bag) => .Bag
         </patternAttempts>
-        <expr> Exp:K => . </expr>
+        <expr> Exp:K => .K </expr>
 
     rule
         <matchK> matching => match-failure </matchK>
-        <cases> . </cases>
+        <cases> .K </cases>
 
     rule
         <matchAnalysis>...
@@ -577,7 +577,7 @@ module OCAML-TOP-LEVEL
 
     //@ Ignore exception definitions since we assume the program type checks
     rule
-        <k> StExc(_, _) => . ...</k>
+        <k> StExc(_, _) => .K ...</k>
 
     rule
         <k> StExp(Exp:K) => Exp ...</k>
