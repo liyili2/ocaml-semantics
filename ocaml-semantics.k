@@ -51,7 +51,7 @@ module OCAML-TRANS
 
 
  rule translation(E1:Exp E2:Exp) => ExApp(translation(E1),translation(E2))
- rule translation(fun X -> E)  => ExFun(PaId(X) <- translation(E)) 
+ rule translation(fun X -> E)  => ExFun(McArr(PaId(X),ExNil,translation(E))) 
  rule translation('ocamlSeq(E1:Exp,, E2:Exp))  => ExSem(translation(E1),translation(E2))
  rule translation('ocamlIf(E1,, E2,, E3))
                       => ExIfe(translation(E1),translation(E2),translation(E3))
@@ -60,9 +60,9 @@ module OCAML-TRANS
  rule translation(let rec E1 = E2 in E3)
                       => ExRec(RbEq(translation(E1),translation(E2)),translation(E3))
  rule translation(match E1 with E2 -> E3)
-                      => ExMat(translation(E3),translation(E1) <- translation(E2))
+                      => ExMat(translation(E3),McArr(translation(E1), ExNil, translation(E2)))
  rule translation(try E1 with E2 -> E3)
-                      => ExTry(translation(E3),translation(E1) <- translation(E2))
+                      => ExTry(translation(E3),McArr(translation(E1), ExNil, translation(E2)))
  rule translation('ocamlList(E:Exps)) => translations(E)
  rule translations(.Exps) => ExNil
  rule translations(E:Exp ; Es:Exps) => 'ExCom(translation(E),, translations(Es))
