@@ -37,7 +37,7 @@ module OCAML-TRANS
  rule translation(I:Int) => ExInt(I)
 // rule translation(false) => ExInt(0)
 // rule translation(true) => ExInt(1) 
-
+ rule translation(I:Id) => ExId(I)
 
 //Binary Integer Operator Expressions
  rule translation(E1:AExp + E2:AExp) => ExApp(ExApp(ExId(IdLid("+")), translation(E1)),translation(E2))
