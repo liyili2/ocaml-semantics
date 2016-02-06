@@ -384,7 +384,7 @@ module OCAML-SYNTAX
                         | "(" ModuleExpr ")"                            [bracket]
 
     syntax ModuleItemFactor ::= Definition | Expr
-    syntax ModuleItemListFactor ::= ";;" Definition | Definition  | Expr ";;"
+    syntax ModuleItemListFactor ::= ";;" Definition | Definition  | Expr
     syntax ModuleItemListFactors ::= List{ModuleItemListFactor,""}
     syntax ModuleItems ::= ModuleItemFactor ModuleItemListFactors
                          | ";;" ModuleItemFactor ModuleItemListFactors
