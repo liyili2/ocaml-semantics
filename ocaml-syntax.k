@@ -53,13 +53,14 @@ module OCAML-SYNTAX
                        | Constr | "false" | "true" | Unit | "begin" "end"
                        | "[]" | "[||]" | "`" CapitalizedName
     syntax IntegerLiteral ::= Token{[\-]?[0-9][0-9 \_]*} [onlyLabel, prefer]
- 	           | Token{[\-]?([0x]| [0X])[0-9 A-F a-f][0-9 A-F a-f \_]*}
+ 	           | Token{([0x]| [0X])[0-9 A-F a-f][0-9 A-F a-f \_]*}
                      [onlyLabel]
-                   | Token{[\-]?([0o]| [0O])[0-7][0-7 \_]*}
+                   | Token{([0o]| [0O])[0-7][0-7 \_]*}
                      [onlyLabel]
-                   | Token{[\-]?([0b]| [0B])[0-1][0-1 \_]*}
+                   | Token{([0b]| [0B])[0-1][0-1 \_]*}
                      [onlyLabel]
-    syntax FloatLiteral ::= Token{[\-]?[0-9][0-9 \_]*([\.][0-9 \_]*)?(([e]|[E])([\+]|[\-])?[0-9][0-9 \_]*)?}
+		   | Int
+    syntax FloatLiteral ::= Token{[0-9][0-9 \_]*(([\.][0-9 \_]*)|(([e]|[E])([\+]|[\-])?[0-9][0-9 \_]*))}
                      [onlyLabel]
     syntax CharLiteral ::= Token{[\'] (~[\' \\]) [\']} [onlyLabel]
                           | Token{[\'](([\\][\\ \" \' n t b r \ ])|([\\][0-9][0-9][0-9])|([\\][x][0-9 A-F a-f][0-9 A-F a-f]))[\']}        
@@ -383,7 +384,7 @@ module OCAML-SYNTAX
                         | "(" ModuleExpr ")"                            [bracket]
 
     syntax ModuleItemFactor ::= Definition | Expr
-    syntax ModuleItemListFactor ::= ";;" Definition | Definition | ";;" Expr
+    syntax ModuleItemListFactor ::= ";;" Definition | Definition  | Expr ";;"
     syntax ModuleItemListFactors ::= List{ModuleItemListFactor,""}
     syntax ModuleItems ::= ModuleItemFactor ModuleItemListFactors
                          | ";;" ModuleItemFactor ModuleItemListFactors
