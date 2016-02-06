@@ -152,59 +152,60 @@ module OCAML-SYNTAX
 
     //define expressions.
     syntax ValuePath ::= ValueName | CapitalizedName "." ValuePath
-    syntax Expr ::= Constant | ValuePath                        [prefer]
-                  > PrefixSymbol Expr
-                  > AllowArrowExpr
-                  > Expr "#" LowerCaseName
-                  > "assert" Expr
-                  | "lazy" Expr
-                  | "new" Field
-                  | Expr ArgumentList                           [left]
-                  | "`" CapitalizedName Expr                    [left]
-                  | Constr Expr                                 [left]
-                  > "-" Expr
-                  | "-." Expr
-                  > Expr ExOp Expr                              [prefer,right]
-                  | Expr LogicShiftOp Expr                      [prefer,right]
-                  > Expr MathOp Expr                            [prefer,left]
-                  > Expr AllPlusAndMinus Expr                   [prefer,left]
-                  > Expr "::" Expr                              [right]
-                  > Expr ConcatOp Expr                          [prefer,right]
-                  > Expr CompareOp Expr                         [prefer,right]
-                  > Expr BinaryAnd Expr                         [prefer,right]
-                  > Expr BinaryOr Expr                          [prefer,left]
-                  > Expr InfixSymbol Expr                       [left]
-                  > Expr "," Expr                               [left]
-                  > AllowArrowExpr "<-" Expr                    [right]
-                  | Expr AssignOp Expr                          [prefer,right]
-                  > "if" Expr "then" Expr
-                  | "if" Expr "then" Expr "else" Expr
-                  > Expr ";" Expr                               [right]
-                  > "match" Expr "with" PatternMatching
-                  | "function" PatternMatching
-                  | "fun" MultipleMatching
-                  | "try" Expr "with" PatternMatching
-                  | "let" LetBindingList "in" Expr
-                  | "let" "rec" LetBindingList "in" Expr
-                  | "begin" Expr "end"
-                  | "while" Expr "do" Expr "done"
-                  | "for" ValueName "=" Expr "to" Expr "do" Expr "done"
-                  | "for" ValueName "=" Expr "downto" Expr "do" Expr "done"
-                  | ObjectClassBody
-                  | "(" Expr ":" TypeExpr ")"
-                  | "(" Expr ":>" TypeExpr ")"
-                  | "(" Expr ":" TypeExpr ":>" TypeExpr ")"
-                  | "[" ExprList "]"                            [klabel('exprAsList)]
-                  | "[" ExprList ";" "]"                        [klabel('exprAsList)]
-                  | "[|" ExprList "|]"                          [klabel('exprBarAsList)]
-                  | "[|" ExprList ";" "|]"                      [klabel('exprBarAsList)]
-                  | "{" FieldExprList "}"                       [klabel('fieldExprAsList)]
-                  | "{" FieldExprList ";" "}"                   [klabel('fieldExprAsList)]
-                  | "{" Expr "with" FieldExprList "}"           [klabel('theFieldExprAsList)]
-                  | "{" Expr "with" FieldExprList ";" "}"       [klabel('theFieldExprAsList)]
-                  | "{<" InstNameExprList ">}"                  [klabel('instNameExprAsList)]
-                  | "{<" InstNameExprList ";" ">}"              [klabel('instNameExprAsList)]
-                  | "(" Expr ")"                                [bracket]
+    syntax Expr ::= Constant                                   [prec(10)]
+                  | ValuePath                                  [prec(10)]
+                  | PrefixSymbol Expr                          [prec(15)]
+                  | AllowArrowExpr                             [prec(20)]
+                  | Expr "#" LowerCaseName                     [prec(25)]
+                  | "assert" Expr                              [prec(30)]
+                  | "lazy" Expr                                [prec(30)]
+                  | "new" Field                                [prec(30)]
+                  | Expr ArgumentList                          [left,prec(30)]
+                  | "`" CapitalizedName Expr                   [left,prec(30)]
+                  | Constr Expr                                [left,prec(30)]
+                  | "-" Expr                                   [prec(35)]       
+                  | "-." Expr                                  [prec(35)]
+                  | Expr ExOp Expr                             [right,prec(40)]
+                  | Expr LogicShiftOp Expr                     [right,prec(40)]
+                  | Expr MathOp Expr                           [left,prec(45)]
+                  | Expr AllPlusAndMinus Expr                  [left,klabel('arithOp),prec(50)]
+                  | Expr "::" Expr                             [right,prec(55)]
+                  | Expr ConcatOp Expr                         [right,prec(60)]
+                  | Expr CompareOp Expr                        [right,prec(65)]
+                  | Expr BinaryAnd Expr                        [right,prec(70)]
+                  | Expr BinaryOr Expr                         [left,prec(75)]
+                  | Expr InfixSymbol Expr                      [avoid,left,prec(80)]
+                  | Expr "," Expr                              [left,prec(85)]
+                  | AllowArrowExpr "<-" Expr                   [right,prec(90)]
+                  | Expr AssignOp Expr                         [right,prec(90)]
+                  | "if" Expr "then" Expr                       [prec(95)]
+                  | "if" Expr "then" Expr "else" Expr           [prec(95)]
+                  | Expr ";" Expr                               [right,prec(100)]
+                  | "match" Expr "with" PatternMatching         [prec(105)]
+                  | "function" PatternMatching                  [prec(105)]
+                  | "fun" MultipleMatching                      [prec(105)]
+                  | "try" Expr "with" PatternMatching           [prec(105)]
+                  | "let" LetBindingList "in" Expr              [prec(105)]
+                  | "let" "rec" LetBindingList "in" Expr        [prec(105)]
+                  | "begin" Expr "end"                          [prec(105)]
+                  | "while" Expr "do" Expr "done"               [prec(105)]
+                  | "for" ValueName "=" Expr "to" Expr "do" Expr "done"      [prec(105)]
+                  | "for" ValueName "=" Expr "downto" Expr "do" Expr "done"  [prec(105)]
+                  | ObjectClassBody                                          [prec(105)]
+                  | "(" Expr ":" TypeExpr ")"                                [prec(105)]
+                  | "(" Expr ":>" TypeExpr ")"                               [prec(105)]
+                  | "(" Expr ":" TypeExpr ":>" TypeExpr ")"                  [prec(105)]
+                  | "[" ExprList "]"                            [klabel('exprAsList),prec(105)]
+                  | "[" ExprList ";" "]"                        [klabel('exprAsList),prec(105)]
+                  | "[|" ExprList "|]"                          [klabel('exprBarAsList),prec(105)]
+                  | "[|" ExprList ";" "|]"                      [klabel('exprBarAsList),prec(105)]
+                  | "{" FieldExprList "}"                       [klabel('fieldExprAsList),prec(105)]
+                  | "{" FieldExprList ";" "}"                   [klabel('fieldExprAsList),prec(105)]
+                  | "{" Expr "with" FieldExprList "}"           [klabel('theFieldExprAsList),prec(105)]
+                  | "{" Expr "with" FieldExprList ";" "}"       [klabel('theFieldExprAsList),prec(105)]
+                  | "{<" InstNameExprList ">}"                  [klabel('instNameExprAsList),prec(105)]
+                  | "{<" InstNameExprList ";" ">}"              [klabel('instNameExprAsList),prec(105)]
+                  | "(" Expr ")"                                [bracket,prec(105)]
 
     syntax ExprList ::= Expr
                       | Expr ";" ExprList
@@ -384,12 +385,14 @@ module OCAML-SYNTAX
                         | "(" ModuleExpr ")"                            [bracket]
 
     syntax ModuleItemFactor ::= Definition | Expr
-    syntax ModuleItemListFactor ::= ";;" Definition | Definition  | Expr
-    syntax ModuleItemListFactors ::= List{ModuleItemListFactor,""}
-    syntax ModuleItems ::= ModuleItemFactor ModuleItemListFactors
-                         | ";;" ModuleItemFactor ModuleItemListFactors
-                         | ModuleItemFactor ModuleItemListFactors ";;"
-                         | ";;" ModuleItemFactor ModuleItemListFactors ";;"
+    syntax ModuleItemListFactor ::= ModuleItemFactor
+                                  | ModuleItemListFactor ";;" ModuleItemFactor
+                                  | ModuleItemListFactor Definition
+
+    syntax ModuleItems ::= ModuleItemListFactor
+                         | ";;" ModuleItemListFactor
+                         | ModuleItemListFactor ";;"
+                         | ";;" ModuleItemListFactor ";;"
                          | "" [klabel('nullModuleItems),onlyLabel]
 
     syntax Definition ::= "let" LetBindingList
