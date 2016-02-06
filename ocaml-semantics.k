@@ -28,8 +28,8 @@ module OCAML-TRANS
     imports OCAML-SYNTAX
     imports OCAML-ABSTRACT-SYNTAX
 
-    syntax KItem ::= translation(Exp)  [function]
-    syntax KItem ::= translations(Exps)  [function]
+    syntax KItem ::= translation(Expr)  [function]
+//    syntax KItem ::= translations(Exprs)  [function]
     syntax KItem ::= translationTuples(Tuples)  [function]
     syntax KItem ::= translationTupleNext(TupleNext)  [function]
     syntax KItem ::= translation(BExp) [function]
