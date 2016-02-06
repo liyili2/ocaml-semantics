@@ -409,4 +409,5 @@ module OCAML-SYNTAX
     syntax UnitInterface ::= SpecificationList
     syntax UnitImplementation ::= ModuleItems
 
+    configuration <k> $PGM:ModuleItems </k>
 endmodule
