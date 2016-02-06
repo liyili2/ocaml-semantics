@@ -1,56 +1,13 @@
 module OCAML-SYNTAX
 
-/*
-    syntax AExp ::= Int
-		 | "(" AExp ")" [bracket]
-                 | AExp "*" AExp [left]
-		 | AExp "/" AExp [left]
-		 > AExp "+" AExp [left]
-		 | AExp "-" AExp [left]
-
-    syntax BExp ::= Bool 
-		| "(" BExp ")" [bracket]
-		| BExp "||" BExp [left]
-		| BExp "&&" BExp [left] 
-
-    syntax Exp ::= AExp | BExp 	| FunExp
-                 | Id
-                 | Exp Exp [left]
-                 | Exp ";" Exp [left,onlyLabel,klabel('ocamlSeq)]
-                 | "if" Exp "then" Exp "else" Exp  [klabel('ocamlIf),onlyLabel]
-                 | "let" Exp "=" Exp "in" Exp
-                 | "let" "rec" Exp "=" Exp "in" Exp
-                 | "match" Exp "with" Exp "->" Exp
-                 | "try" Exp "with" Exp "->" Exp
-                 | "[" Exps "]"   [klabel('ocamlList),onlyLabel]
-                 | "(" Tuples ")" [klabel('tuple),onlyLabel]
-
-    syntax Exps  ::= List{Exp,";"}
-    syntax Tuples ::= Exp "," TupleNext [klabel('tupleFirst)]
-    syntax TupleNext ::= Exp | Exp "," TupleNext [klabel('tupleSecond)]
-
-    syntax Label ::= Token{[a-z]+}  [onlyLabel]
-                   | "Empty"
-*/
-
-
-/*
-    syntax FunExp ::= //"fun" Id "->" FunExp
-			 "fun" Id "->" Exp
-		//	| "fun" "x" "->" Exp
-		//	| "fun" "[" Label "]" Pattern "->" FunExp
-			| "fun" "[" Label "]" Pattern "->" Exp
-			| "(" FunExp ")" [bracket]
-*/
-
-
     syntax LowerCaseName ::= Token{[a-z \_][0-9 a-z A-Z \' \_]*}   [onlyLabel]
     syntax CapitalizedName ::= Token{[A-Z \_][0-9 a-z A-Z \' \_]*}   [onlyLabel]
     syntax Identifier ::= LowerCaseName | CapitalizedName
 
     syntax ValueName ::= LowerCaseName
                        | "(" OperatorName ")"
-    syntax OperatorName ::= PrefixSymbol | InfixOp
+    syntax OperatorName ::= PrefixSymbol | InfixSymbol
+                          | ImportantOps [prefer]
     syntax PrefixSymbol ::= Token{[\!][\! \$ \% \& \* \+ \- \. \/ \: \< \= \> \? \@ \^ \| \~]*}
                             [onlyLabel]
                           | Token{[\? \~][\! \$ \% \& \* \+ \- \. \/ \: \< \= \> \? \@ \^ \| \~]+}
@@ -58,30 +15,42 @@ module OCAML-SYNTAX
 
     syntax InfixSymbol ::= Token{[\= \< \> \@ \^ \| \& \+ \- \* \/ \$ \%][\! \$ \% \& \* \+ \- \. \/ \: \< \= \> \? \@ \^ \| \~]*}
                        [onlyLabel]
-    syntax InfixOp ::= InfixSymbol
-                     | "*"    [prefer]
-                     | "+"    [prefer]
-                     | "-"    [prefer]
-                     | "-."   [prefer]
-                     | "="    [prefer]
-                     | "!="   [prefer]
-                     | "<"    [prefer]
-                     | ">"    [prefer]
-                     | "or"   [prefer]
-                     | "||"   [prefer]
-                     | "&"    [prefer]
-                     | "&&"   [prefer]
-                     | ":="   [prefer]
-                     | "mod"  [prefer]
-                     | "land" [prefer]
-                     | "lor"  [prefer]
-                     | "lxor" [prefer]
-                     | "lsl"  [prefer]
-                     | "lsr"  [prefer]
-                     | "asr"  [prefer]
+    syntax Plus ::= "+"
+    syntax Minus ::= "-"
+    syntax Variance ::= Plus | Minus
+    syntax AllPlusAndMinus ::= Variance | "+." | "-."
 
+    syntax ImportantOps ::= AllPlusAndMinus
+                          | LogicShiftOp
+                          | ExOp
+                          | MathOp
+                          | CompareOp
+                          | BinaryAnd
+                          | BinaryOr
+                          | AssignOp
+
+    syntax AssignOp ::= ":="
+    syntax CompareOp ::= "=" | "!=" | "<" | ">"
+    syntax BinaryAnd ::= "&" | "&&" 
+    syntax BinaryOr ::= "or" | "||"
+    syntax ConcatOp ::= "@" | "^" 
+    syntax MathOp ::=  "lor"
+                     | "lxor"
+                     | "land"
+                     | "mod"
+                     | "*"
+                     | "*."
+                     | "/"
+                     | "/."
+
+    syntax LogicShiftOp ::= "lsl"
+                          | "lsr"
+                          | "asr"
+    syntax ExOp ::= "**"
+
+    syntax Unit ::= "()"
     syntax Constant ::= IntegerLiteral | FloatLiteral | CharLiteral | StringLiteral
-                       | Constr | "false" | "true" | "()" | "begin" "end"
+                       | Constr | "false" | "true" | Unit | "begin" "end"
                        | "[]" | "[||]" | "`" CapitalizedName
     syntax IntegerLiteral ::= Token{[\-]?[0-9][0-9 \_]*} [onlyLabel, prefer]
  	           | Token{[\-]?([0x]| [0X])[0-9 A-F a-f][0-9 A-F a-f \_]*}
@@ -194,10 +163,19 @@ module OCAML-SYNTAX
                   | Constr Expr                                 [left]
                   > "-" Expr
                   | "-." Expr
-                  > Expr InfixOp Expr                           [left]
+                  > Expr ExOp Expr                              [prefer,right]
+                  | Expr LogicShiftOp Expr                      [prefer,right]
+                  > Expr MathOp Expr                            [prefer,left]
+                  > Expr AllPlusAndMinus Expr                   [prefer,left]
                   > Expr "::" Expr                              [right]
+                  > Expr ConcatOp Expr                          [prefer,right]
+                  > Expr CompareOp Expr                         [prefer,right]
+                  > Expr BinaryAnd Expr                         [prefer,right]
+                  > Expr BinaryOr Expr                          [prefer,left]
+                  > Expr InfixSymbol Expr                       [left]
                   > Expr "," Expr                               [left]
                   > AllowArrowExpr "<-" Expr                    [right]
+                  | Expr AssignOp Expr                          [prefer,right]
                   > "if" Expr "then" Expr
                   | "if" Expr "then" Expr "else" Expr
                   > Expr ";" Expr                               [right]
@@ -319,5 +297,115 @@ module OCAML-SYNTAX
     syntax ClassFieldList ::= List{ClassField,""}
     syntax ClassBody ::= ClassFieldList | "(" Pattern ")" ClassFieldList
                        | "(" Pattern ":" TypeExpr ")" ClassFieldList
+
+    syntax ClassDefinition ::= "class" ClassBindingList
+    syntax OptClassType ::= ":" ClassType | "" [klabel('nullClassType),onlyLabel]
+    syntax TypeParameters ::= "[" IdentifierQuoteList "]" | "" [klabel('nullTypeParameters),onlyLabel]
+    syntax ClassBinding ::= OptVirtual TypeParameters LowerCaseName ParameterList OptClassType "=" ClassExpr
+    syntax ClassBindingList ::= ClassBinding | ClassBinding "and" ClassBindingList
+
+    syntax ClassSpec ::= OptVirtual TypeParameters LowerCaseName ":" ClassType
+    syntax ClassSpecList ::= ClassSpec | ClassSpec "and" ClassSpecList
+    syntax ClassSpecification ::= "class" ClassSpecList
+
+    syntax ClassTypeDef ::= OptVirtual TypeParameters LowerCaseName "=" ClassBodyType
+    syntax ClassTypeDefList ::= ClassTypeDef | ClassTypeDef "and" ClassTypeDefList
+    syntax ClassTypeDefinition ::= "class" "type" ClassTypeDefList
+
+    //define the type and exception expressions.
+    syntax TypeDefinition ::= "type" TypeDefList
+    syntax TypeDefList ::= TypeDef | TypeDef "and" TypeDefList
+    syntax TypeDef ::= TypeParams LowerCaseName TypeInformation
+    syntax OptVariance ::= Variance | "" [klabel('nullVariance),onlyLabel]
+    syntax TypeParam ::= OptVariance "'" Identifier
+    syntax TypeParamList ::= TypeParam | TypeParam "," TypeParamList
+    syntax TypeParams ::= TypeParam | "(" TypeParamList ")" | "" [klabel('nullTypeParams),onlyLabel]
+    syntax TypeInformation ::= TypeEquation TypeRepresentation TypeConstraints
+                             | TypeRepresentation TypeConstraints
+
+    syntax TypeEquation ::= "=" TypeExpr | "" [klabel('nullTypeEquation),onlyLabel]
+    syntax TypeConstraint ::= "constraint" "'" Identifier "=" TypeExpr
+    syntax TypeConstraints ::= List{TypeConstraint,""}
+    
+    syntax TypeExprStars ::= TypeExpr | TypeExpr "*" TypeExprStars
+    syntax FieldDecl ::= OptMutable LowerCaseName PolyTypeExpr
+    syntax ConstrDecl ::= CapitalizedName | Unit
+                        | CapitalizedName "of" TypeExprStars
+                        | Unit "of" TypeExprStars
+    syntax ConstrDeclList ::= ConstrDecl | ConstrDecl "|" ConstrDeclList
+    syntax FieldDeclList ::= FieldDecl | FieldDecl ";" FieldDeclList
+    syntax TypeRepresentation ::= "=" ConstrDeclList | "=" "|" ConstrDeclList
+                                | "=" "{" FieldDeclList "}"
+                                |  "=" "{" FieldDeclList ";" "}"
+                                | ""  [klabel('nullTypeRep),onlyLabel]
+
+
+    syntax ExceptionDefinition ::= "exception" CapitalizedName
+                                 | "exception" CapitalizedName "=" Constr
+                                 | "exception" CapitalizedName "of" TypeExprStars
+
+    //definition of module specifications.
+    syntax Specification ::= "val" ValueName ":" TypeExpr
+                           | "external" ValueName ":" TypeExpr "=" ExternalDeclaration
+                           | TypeDefinition
+                           | "exception" ConstrDecl
+                           | ClassSpecification
+                           | ClassTypeDefinition
+                           | "module" CapitalizedName ModuleNameTypePairs ":" ModuleType
+                           | "module" "type" CapitalizedName "=" ModuleType
+                           | OpenModulePath
+                           | "include" ModuleType
+
+    syntax OpenModulePath ::= "open" Constr
+    syntax ModConstraint ::= "type" TypeParams TypeConstr "=" TypeExpr
+                           | "module" Constr "=" ExtendedModulePath
+    syntax ModConstraintList ::= ModConstraint | ModConstraint "and" ModConstraintList
+    syntax ModTypePath ::= ExtendedModulePath "." Identifier
+    syntax ModuleType ::= ModTypePath
+                        | "sig" SpecificationList "end"
+                        | "functor" "(" CapitalizedName ":" ModuleType ")" "->" ModuleType
+                        |  ModuleType "with" ModConstraintList
+                        | "(" ModuleType ")"                            [bracket]
+
+    syntax Specifications ::= Specification | Specification ";;"
+    syntax SpecificationList ::= List{Specifications,""}
+    syntax ModuleNameTypePair ::= "(" CapitalizedName ":" ModuleType ")"
+    syntax ModuleNameTypePairs ::= List{ModuleNameTypePair,""}
+    syntax ExternalDeclaration ::= StringLiteral | StringLiteral StringLiteral
+                                 | StringLiteral StringLiteral StringLiteral
+
+    //definition of module expressions.
+    syntax ModuleExpr ::= Constr
+                        | "struct" ModuleItems "end"
+                        | "functor" "(" CapitalizedName ":" ModuleType ")" "->" ModuleExpr
+                        | ModuleExpr "(" ModuleExpr ")"
+                        |  "(" ModuleExpr ":" ModuleType ")"
+                        | "(" ModuleExpr ")"                            [bracket]
+
+    syntax ModuleItemFactor ::= Definition | Expr
+    syntax ModuleItemListFactor ::= ";;" Definition | Definition | ";;" Expr
+    syntax ModuleItemListFactors ::= List{ModuleItemListFactor,""}
+    syntax ModuleItems ::= ModuleItemFactor ModuleItemListFactors
+                         | ";;" ModuleItemFactor ModuleItemListFactors
+                         | ModuleItemFactor ModuleItemListFactors ";;"
+                         | ";;" ModuleItemFactor ModuleItemListFactors ";;"
+                         | "" [klabel('nullModuleItems),onlyLabel]
+
+    syntax Definition ::= "let" LetBindingList
+                        | "let" "rec" LetBindingList
+                        | "external" ValueName ":" TypeExpr "=" ExternalDeclaration
+                        | TypeDefinition
+                        | ExceptionDefinition
+                        | ClassDefinition
+                        | ClassTypeDefinition
+                        | "module" CapitalizedName ModuleNameTypePairs "=" ModuleExpr
+                        | "module" CapitalizedName ModuleNameTypePairs ":" ModuleType "=" ModuleExpr
+                        | "module" "type" Identifier "=" ModuleType
+                        | OpenModulePath
+                        | "include" ModuleExpr
+
+    //define unit interface and implementation
+    syntax UnitInterface ::= SpecificationList
+    syntax UnitImplementation ::= ModuleItems
 
 endmodule
