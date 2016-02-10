@@ -176,7 +176,7 @@ module OCAML-SYNTAX
                   | Expr LogicShiftOp Expr                         [right,prec(40),klabel('binaryRightOp)]
                   | Expr MathOp Expr                               [left,prec(45),klabel('binaryLeftOp)]
                   | Expr AllPlusAndMinus Expr                      [left,klabel('binaryLeftOp),prec(50)]
-                  | Expr "::" Expr                                 [right,prec(55),klabel('binaryRightOp)]
+                  | Expr ListOp Expr                                 [right,prec(55),klabel('binaryRightOp)]
                   | Expr ConcatOp Expr                             [right,prec(60),klabel('binaryRightOp)]
                   | Expr CompareOp Expr                            [right,prec(65),klabel('binaryRightOp)]
                   | Expr BinaryAnd Expr                            [right,prec(70),klabel('binaryRightOp)]
