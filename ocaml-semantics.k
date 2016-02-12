@@ -27,33 +27,35 @@ endmodule
 module OCAML-TRANS
     imports OCAML-SYNTAX
     imports OCAML-ABSTRACT-SYNTAX
-
-    syntax KItem ::= translation(Expr)  [function]
+    
+    syntax KItem ::= translation(ModuleItemListFactor) [function]
+//    syntax KItem ::= translation(Expr)  [function]
 //    syntax KItem ::= translations(Exprs)  [function]
-    syntax KItem ::= translationTuples(Tuples)  [function]
-    syntax KItem ::= translationTupleNext(TupleNext)  [function]
-    syntax KItem ::= translation(BExp) [function]
+ //   syntax KItem ::= translationTuples(Tuples)  [function]
+//    syntax KItem ::= translationTupleNext(TupleNext)  [function]
+//    syntax KItem ::= translation(BExp) [function]
 
  rule translation(I:Int) => ExInt(I)
 // rule translation(false) => ExInt(0)
 // rule translation(true) => ExInt(1) 
- rule translation(I:Id) => ExId(I)
+ rule translation(I:ValueName) => ExId(I)
 
 //Binary Integer Operator Expressions
- rule translation(E1:AExp + E2:AExp) => ExApp(ExApp(ExId(IdLid("+")), translation(E1)),translation(E2))
- rule translation(E1:AExp - E2:AExp) => ExApp(ExApp(ExId(IdLid("-")), translation(E1)),translation(E2))
- rule translation(E1:AExp * E2:AExp) => ExApp(ExApp(ExId(IdLid("*")), translation(E1)),translation(E2))
- rule translation(E1:AExp / E2:AExp) => ExApp(ExApp(ExId(IdLid("/")), translation(E1)),translation(E2))
+ rule translation('binaryLeftOp(E1:Expr,, Bin:AllPlusAndMinus ,, E2:Expr)) => ExApp(ExApp(ExId(IdLid(Bin)), translation(E1)),translation(E2))
+// rule translation(E1:Exp - E2:Exp) => ExApp(ExApp(ExId(IdLid("-")), translation(E1)),translation(E2))
+// rule translation(E1:Exp * E2:Exp) => ExApp(ExApp(ExId(IdLid("*")), translation(E1)),translation(E2))
+// rule translation(E1:Exp / E2:Exp) => ExApp(ExApp(ExId(IdLid("/")), translation(E1)),translation(E2))
 
 // Binary boolean Operator Expressions
- rule translation(B1:BExp || B2:BExp) => McOr(translation(B1), translation(B2))
- rule translation(B1:BExp && B2:BExp) => BiAnd(translation(B1), translation(B2))
+ rule translation('binaryLeftOp (B1:Expr,, Or:BinaryOr ,, B2:Expr)) => McOr(translation(B1), translation(B2))
+ rule translation('binaryLeftOp (B1:Expr,, Or:BinaryAnd ,, B2:Expr)) => BiAnd(translation(B1), translation(B2))
 
 
- rule translation(E1:Exp E2:Exp) => ExApp(translation(E1),translation(E2))
- rule translation(fun X -> E)  => ExFun(McArr(PaId(X),ExNil,translation(E))) 
- rule translation('ocamlSeq(E1:Exp,, E2:Exp))  => ExSem(translation(E1),translation(E2))
- rule translation('ocamlIf(E1,, E2,, E3))
+ rule translation(E1:Expr E2:Expr) => ExApp(translation(E1),translation(E2))
+ rule translation(fun X:Parameter .ParameterList -> E:Expr)  => ExFun(McArr(PaId(X),ExNil,translation(E))) 
+rule translation(fun X1:Parameter X2:Parameter Xs:ParameterList -> E:Expr)  => ExFun(McArr(PaId(X1),ExNil,translation(fun X2 Xs -> E))) 
+ rule translation(E1:Expr ; E2:Expr)  => ExSem(translation(E1),translation(E2))
+ rule translation(if E1:Expr then E2:Expr else E3:Expr)
                       => ExIfe(translation(E1),translation(E2),translation(E3))
  rule translation(let E1 = E2 in E3)
                       => ExLet(BiEq(translation(E1),translation(E2)),translation(E3))
@@ -82,7 +84,7 @@ module OCAML-CONFIGURATION
 
     configuration
         <T>
-            <k color="LightGreen"> initEnv ~> translation($PGM:Exp) </k>
+            <k color="LightGreen"> initEnv ~> translation($PGM:ModuleItemListFactor) </k>
             <env color="LightSkyBlue"> .Map </env>
             <store color="LightSteelBlue"> .Map </store>
             <xstack color="LightSlateBlue"> .K </xstack>
@@ -430,7 +432,7 @@ module OCAML-PATTERNS
         <patterns> (PaId(X:LId) <- K:K) => .K ...</patterns>
         <subst>... .Map => X |-> K ...</subst>
 
-    rule PaAny <- K:K => .K [anywhere]
+    rule PaAny <- K:K => .K [anywhere] //wildcard. 
 
     rule PaId(UId:UId) <- UId => .K [anywhere]
 

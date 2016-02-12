@@ -79,7 +79,7 @@ endmodule
 module OCAML-SEMANTICS-NEW 
 	imports OCAML-INCLUDE
 
-rule <k> I1:Int + I2:Int => I1 +Int I2 </k>
+rule  I1:Int + I2:Int => I1 +Int I2 
 
 
 endmodule
