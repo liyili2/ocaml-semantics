@@ -56,6 +56,10 @@ module OCAML-ABSTRACT-SYNTAX
     // TODO maybe we should fix this?
     syntax O ::= "None"
 
+    syntax ListFactor ::= funFactor(O,O)
+    syntax FunList ::= List{ListFactor,","}
+    syntax O ::= wholeFun(FunList)
+
     syntax Element ::= val(K) [strict]
     syntax ElementResult ::= valValue(K)
     syntax Element ::= ElementResult

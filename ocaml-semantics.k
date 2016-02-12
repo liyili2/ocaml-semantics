@@ -52,8 +52,14 @@ module OCAML-TRANS
 
 
  rule translation(E1:Expr E2:Expr) => ExApp(translation(E1),translation(E2))
- rule translation(fun X:Parameter .ParameterList -> E:Expr)  => ExFun(McArr(PaId(X),ExNil,translation(E))) 
-rule translation(fun X1:Parameter X2:Parameter Xs:ParameterList -> E:Expr)  => ExFun(McArr(PaId(X1),ExNil,translation(fun X2 Xs -> E))) 
+
+ rule translation(fun X1:Parameter (X2:Parameter Xs:ParameterList) -> E:Expr)
+           => translation(fun X1 .ParameterList -> (fun X2:Parameter Xs:ParameterList -> E:Expr))
+ rule translation(fun X1:Parameter .ParameterList -> E:Expr)
+           => wholeFun(ListFactor(translation(X1),translation(E)))
+ rule translation(function P:PatternMatching) => wholeFun(translation(P))
+ //rule translation(fun X:Parameter .ParameterList -> E:Expr)  => ExFun(McArr(PaId(X),ExNil,translation(E))) 
+ //rule translation(fun X1:Parameter X2:Parameter .ParameterList -> E:Expr)  => ExFun(McArr(PaId(X1),ExNil,translation(fun X2 Xs -> E))) 
  rule translation(E1:Expr ; E2:Expr)  => ExSem(translation(E1),translation(E2))
  rule translation(if E1:Expr then E2:Expr else E3:Expr)
                       => ExIfe(translation(E1),translation(E2),translation(E3))
