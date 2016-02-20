@@ -52,6 +52,8 @@ module OCAML-ABSTRACT-SYNTAX
     syntax KItem ::= K "<-" K
     syntax O ::= TyId(K)
 
+    //syntax AllOps ::= Unit | ConsOp | ...
+
     // option types are sometimes used in the AST
     // TODO maybe we should fix this?
     syntax O ::= "None"
