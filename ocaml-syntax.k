@@ -58,7 +58,7 @@ module OCAML-SYNTAX
     syntax Constant ::= IntegerLiteral | FloatLiteral | CharLiteral | StringLiteral
                        | Constr | Bool | Unit | "begin" "end"
                        | "[]" | "[||]" | "`" CapitalizedName
-    syntax IntegerLiteral ::= Token{[\-]?[0-9][0-9 \_]*} [onlyLabel, prefer]
+    syntax IntegerLiteral ::= Token{[0-9][0-9 \_]*} [onlyLabel, prefer]
  	           | Token{([0x]| [0X])[0-9 A-F a-f][0-9 A-F a-f \_]*}
                      [onlyLabel]
                    | Token{([0o]| [0O])[0-7][0-7 \_]*}
