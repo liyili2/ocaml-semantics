@@ -1,9 +1,9 @@
 module OCAML-ABSTRACT-SYNTAX
-
+imports  OCAML-SYNTAX
     syntax O ::= Loc(K, K) // LocInfo, K
     syntax O ::= LocInfo(Int, Int) // start, stop
 
-    syntax LId ::= IdLid(String)
+    syntax LId ::= IdLid(AllOps)
     syntax UId ::= IdUid(String)
 
     syntax Id ::= LId | UId
@@ -52,7 +52,7 @@ module OCAML-ABSTRACT-SYNTAX
     syntax KItem ::= K "<-" K
     syntax O ::= TyId(K)
 
-    //syntax AllOps ::= Unit | ConsOp | ...
+    syntax AllOps ::= Unit| ConsOp | ImportantOps | LogicShiftOp | ExOp   | MathOp  | CompareOp   | BinaryAnd    | BinaryOr | AssignOp
 
     // option types are sometimes used in the AST
     // TODO maybe we should fix this?

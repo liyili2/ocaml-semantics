@@ -44,7 +44,8 @@ module OCAML-TRANS
  rule translation(I:ValueName) => ExId(I)
 
 //Binary Integer Operator Expressions
-// rule translation('binaryLeftOp(E1:Expr,, Bin:AllPlusAndMinus ,, E2:Expr)) => ExApp(ExApp(ExId(IdLid(Bin)), translation(E1)),translation(E2)) TO FIX Bin to parse as String
+ rule translation('binaryLeftOp(E1:Expr,, Bin:ImportantOps ,, E2:Expr)) => ExApp(ExApp(ExId(IdLid(Bin)), translation(E1)),translation(E2)) 
+
 // rule translation(E1:Exp - E2:Exp) => ExApp(ExApp(ExId(IdLid("-")), translation(E1)),translation(E2))
 // rule translation(E1:Exp * E2:Exp) => ExApp(ExApp(ExId(IdLid("*")), translation(E1)),translation(E2))
 // rule translation(E1:Exp / E2:Exp) => ExApp(ExApp(ExId(IdLid("/")), translation(E1)),translation(E2))
@@ -52,10 +53,7 @@ module OCAML-TRANS
 // Binary boolean Operator Expressions
  rule translation('binaryLeftOp (B1:Expr,, Or:BinaryOr ,, B2:Expr)) => McOr(translation(B1), translation(B2))
  rule translation('binaryLeftOp (B1:Expr,, Or:BinaryAnd ,, B2:Expr)) => BiAnd(translation(B1), translation(B2))
-
-
  rule translation(E1:Expr E2:Expr) => ExApp(translation(E1),translation(E2))
-
  rule translation(fun X1:Parameter (X2:Parameter Xs:ParameterList) -> E:Expr)
            => translation(fun X1 .ParameterList -> (fun X2:Parameter Xs:ParameterList -> E:Expr))
  rule translation(fun X1:Parameter .ParameterList -> E:Expr)
@@ -219,6 +217,7 @@ module OCAML-ARITHMETIC
     rule '%modint(I1:Int,, I2:Int) => I1 %Int I2
     rule '%negint(I:Int) => 0 -Int I
 
+    rule valValue(I:Int) => I 
 endmodule
 
 module OCAML-BOOLEANS
@@ -406,9 +405,9 @@ module OCAML-REF
 
     syntax External ::= "%ref" // %makemutable
 
-    rule
-        <k> '%ref(V:KResult) => ExRec(RbEq(IdLid("val"), V), ExNil) ...</k>
-
+//    rule
+//        <k> '%ref(V:KResult) => ExRec(RbEq(IdLid("val"), V), ExNil) ...</k>
+//
 endmodule
 
 module OCAML-IO
@@ -626,19 +625,20 @@ module OCAML-INIT
 
     // TODO eventually this will go in a separate Pervasives module
     rule
-        initEnv => preassign( IdLid("+") |-> external(%addint, 2)
-            IdLid("-") |-> external(%subint, 2)
-            IdLid("*") |-> external(%mulint, 2)
-            IdLid("/") |-> external(%divint, 2)
-            IdLid("mod") |-> external(%modint, 2)
-            IdLid("~-") |-> external(%negint, 1))
+        initEnv => preassign( IdLid(+) |-> external(%addint, 2)
+            IdLid(-) |-> external(%subint, 2)
+            IdLid(*) |-> external(%mulint, 2)
+            IdLid(/) |-> external(%divint, 2)
+            IdLid(mod) |-> external(%modint, 2)
+            IdLid(-) |-> external(%negint, 1)) //TODO - monop vs binop 
          ~> preassign(
-            IdLid("not") |-> external(%boolnot, 1)
-            IdLid("&&") |-> external(%sequand, 2)
-            IdLid("||") |-> external(%sequor, 2)
-            IdLid("raise") |-> external(%raise, 1)
-            IdLid("ref") |-> external(%ref, 1)
-            IdLid("print_int") |-> external(%print-int, 1))
+   //         IdLid(not) |-> external(%boolnot, 1) // to cover later
+            IdLid(&&) |-> external(%sequand, 2)
+            IdLid(||) |-> external(%sequor, 2)
+  //          IdLid(raise) |-> external(%raise, 1)
+   //         IdLid(ref) |-> external(%ref, 1)
+  //          IdLid(print_int) |-> external(%print-int, 1)
+  )
 
     rule <k> preassign(M':Map) => assigning ...</k>
         <assign> M:Map => M M':Map </assign>
