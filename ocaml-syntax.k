@@ -56,7 +56,7 @@ module OCAML-SYNTAX
     syntax ListSepOp ::= ";"
 
     syntax Constant ::= IntegerLiteral | FloatLiteral | CharLiteral | StringLiteral
-                       | Constr | "false" | "true" | Unit | "begin" "end"
+                       | Constr | Bool | Unit | "begin" "end"
                        | "[]" | "[||]" | "`" CapitalizedName
     syntax IntegerLiteral ::= Token{[\-]?[0-9][0-9 \_]*} [onlyLabel, prefer]
  	           | Token{([0x]| [0X])[0-9 A-F a-f][0-9 A-F a-f \_]*}
