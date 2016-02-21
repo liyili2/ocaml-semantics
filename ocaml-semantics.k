@@ -45,6 +45,7 @@ module OCAML-TRANS
 
 //Binary Integer Operator Expressions
  rule translation('binaryLeftOp(E1:Expr,, Bin:ImportantOps ,, E2:Expr)) => ExApp(ExApp(ExId(IdLid(Bin)), translation(E1)),translation(E2)) 
+  rule translation('unaryOp(Un:MinusUnOp ,, E1:Expr)) => ExApp(ExId(IdLid(Un)), translation(E1))
 
 // rule translation(E1:Exp - E2:Exp) => ExApp(ExApp(ExId(IdLid("-")), translation(E1)),translation(E2))
 // rule translation(E1:Exp * E2:Exp) => ExApp(ExApp(ExId(IdLid("*")), translation(E1)),translation(E2))
@@ -79,6 +80,8 @@ module OCAML-TRANS
  rule translation('binaryLeftOp(E1:Expr,, S:SepOp ,, E2:Expr)) => 'ExTup(translation(E1),, translation(E2))
 // rule translationTupleNext(E:Exp) => translation(E)
 // rule translationTupleNext(E:Exp , T:TupleNext) => 'ExTup(translation(E),, translationTupleNext(T))
+
+rule translation((E:Expr))=> translation(E)
 
 endmodule
 

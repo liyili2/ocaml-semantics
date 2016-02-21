@@ -52,7 +52,7 @@ imports  OCAML-SYNTAX
     syntax KItem ::= K "<-" K
     syntax O ::= TyId(K)
 
-    syntax AllOps ::= Unit| ConsOp | ImportantOps | LogicShiftOp | ExOp   | MathOp  | CompareOp   | BinaryAnd    | BinaryOr | AssignOp
+    syntax AllOps ::= Unit| ConsOp | ImportantOps | LogicShiftOp | ExOp   | MathOp  | CompareOp   | BinaryAnd    | BinaryOr | AssignOp | MinusUnOp
 
     // option types are sometimes used in the AST
     // TODO maybe we should fix this?

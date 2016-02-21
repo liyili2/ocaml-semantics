@@ -20,6 +20,7 @@ module OCAML-SYNTAX
     syntax MinusDot ::= "-."
     syntax Variance ::= Plus | Minus
     syntax AllPlusAndMinus ::= Variance | "+." |MinusDot
+    syntax MinusUnOp ::= Minus | MinusDot
 
     syntax ImportantOps ::= AllPlusAndMinus
                           | LogicShiftOp
