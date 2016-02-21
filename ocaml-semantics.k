@@ -28,24 +28,27 @@ module OCAML-TRANS
     imports OCAML-SYNTAX
     imports OCAML-ABSTRACT-SYNTAX
     
-    syntax KItem ::= translation(ModuleItemListFactor)    
-    syntax KItem ::= translationParam(Parameter)
-    syntax KItem ::= translationLetBindings(LetBindingList)
-    syntax KItem ::= translationLetRecBindings(LetBindingList)
+    syntax KItem ::= translation(ModuleItemListFactor)   [function] 
+    syntax KItem ::= translationParam(Parameter) //[function] 
+    syntax KItem ::= translationLetBindings(LetBindingList) 
+    syntax KItem ::= translationLetRecBindings(LetBindingList) 
 //    syntax KItem ::= translation(Expr)  [function]
 //    syntax KItem ::= translations(Exprs)  [function]
  //   syntax KItem ::= translationTuples(Tuples)  [function]
 //    syntax KItem ::= translationTupleNext(TupleNext)  [function]
 //    syntax KItem ::= translation(BExp) [function]
 
+// rule translation(K:K) => ExInt(0) [owise]
+
  rule translation(I:IntegerLiteral) => ExInt(String2Int(#tokenToString(I)))
   rule translation(F:FloatLiteral) => ExFloat(String2Float(#tokenToString(F)))
+   rule translation(B:Bool) => ExBool(B)
 // rule translation(false) => ExInt(0)
 // rule translation(true) => ExInt(1) 
  rule translation(I:ValueName) => ExId(I)
 
 //Binary Integer Operator Expressions
- rule translation('binaryLeftOp(E1:Expr,, Bin:ImportantOps ,, E2:Expr)) => ExApp(ExApp(ExId(IdLid(Bin)), translation(E1)),translation(E2)) 
+ rule translation('binaryLeftOp(E1:Expr,, Bin:AllIntFloat ,, E2:Expr)) => ExApp(ExApp(ExId(IdLid(Bin)), translation(E1)),translation(E2)) 
  rule translation('unaryOp(Un:Minus ,, E1:Expr)) => ExApp(ExApp(ExId(IdLid(Un)), ExInt(0)),translation(E1)) 
  rule translation('unaryOp(Un:MinusDot ,, E1:Expr)) => ExApp(ExApp(ExId(IdLid(Un)), ExFloat(Int2Float(0,53,11))),translation(E1)) 
  //      when E1 =/=KList .KList
@@ -56,12 +59,16 @@ module OCAML-TRANS
 
 // Binary boolean Operator Expressions
  rule translation('binaryLeftOp (B1:Expr,, Or:BinaryOr ,, B2:Expr)) => McOr(translation(B1), translation(B2))
- rule translation('binaryLeftOp (B1:Expr,, Or:BinaryAnd ,, B2:Expr)) => BiAnd(translation(B1), translation(B2))
+ rule translation('binaryRightOp (B1:Expr,, Or:BinaryAnd ,, B2:Expr)) => BiAnd(translation(B1), translation(B2))
+rule translation('unaryOp(Un:Not ,, E1:Expr)) => ExApp(ExId(IdLid(Un)),translation(E1))
+
+
  rule translation(E1:Expr E2:Expr) => ExApp(translation(E1),translation(E2))
  rule translation(fun X1:Parameter (X2:Parameter Xs:ParameterList) -> E:Expr)
            => translation(fun X1 .ParameterList -> (fun X2:Parameter Xs:ParameterList -> E:Expr))
  rule translation(fun X1:Parameter .ParameterList -> E:Expr)
-           => wholeFun(funFactor(translationParam(X1),translation(E)))
+            => ExFun(McArr(translationParam(X1),ExNil,translation(E))) 
+    //       => wholeFun(funFactor(translationParam(X1),translation(E)))
 // rule translation(function P:PatternMatching) => wholeFun(translation(P))
  //rule translation(fun X:Parameter .ParameterList -> E:Expr)  => ExFun(McArr(PaId(X),ExNil,translation(E))) 
  //rule translation(fun X1:Parameter X2:Parameter .ParameterList -> E:Expr)  => ExFun(McArr(PaId(X1),ExNil,translation(fun X2 Xs -> E))) 
@@ -84,7 +91,17 @@ module OCAML-TRANS
 // rule translationTupleNext(E:Exp) => translation(E)
 // rule translationTupleNext(E:Exp , T:TupleNext) => 'ExTup(translation(E),, translationTupleNext(T))
 
-rule translation((E:Expr))=> translation(E)
+//rule translation((E:Expr))=> translation(E)
+
+rule ExBool(B:Bool) => B
+rule valValue(B:Bool) => B
+
+
+rule BiAnd(true, true) => ExBool(true) 
+rule BiAnd(false, _) => ExBool(false)
+rule BiAnd(true, false) => ExBool(false)
+
+rule translationParam(X:ValueName) => PaId(X) 
 
 endmodule
 
@@ -224,6 +241,7 @@ module OCAML-ARITHMETIC
     rule '%negint(I:Int) => 0 -Int I
 
     rule valValue(I:Int) => I 
+
 endmodule
 
 module OCAML-BOOLEANS
@@ -443,7 +461,7 @@ module OCAML-PATTERNS
 
 
     rule
-        <patterns> (PaId(X:LId) <- K:K) => .K ...</patterns>
+        <patterns> (PaId(X:LowerCaseName) <- K:K) => .K ...</patterns>
         <subst>... .Map => X |-> K ...</subst>
 
     rule PaAny <- K:K => .K [anywhere] //wildcard. 
@@ -636,9 +654,9 @@ module OCAML-INIT
             IdLid(*) |-> external(%mulint, 2)
             IdLid(/) |-> external(%divint, 2)
             IdLid(mod) |-> external(%modint, 2)
-    //        IdLid(-) |-> external(%negint, 1)//TODO - monop vs binop 
-     )    ~> preassign(
-   //         IdLid(not) |-> external(%boolnot, 1) // to cover later
+    //       IdLid(-) |-> external(%negint, 1))//TODO - monop vs binop 
+        ) ~> preassign(
+            IdLid(not) |-> external(%boolnot, 1) // to cover later
             IdLid(&&) |-> external(%sequand, 2)
             IdLid(||) |-> external(%sequor, 2)
   //          IdLid(raise) |-> external(%raise, 1)

@@ -22,15 +22,15 @@ module OCAML-SYNTAX
     syntax PlusUnOp ::= Plus | "+."
     syntax AllPlusAndMinus ::= MinusUnOp | PlusUnOp
     syntax MinusUnOp ::= Minus | MinusDot
-
-    syntax ImportantOps ::= AllPlusAndMinus
-                          | LogicShiftOp
+    syntax AllIntFloat ::= AllPlusAndMinus | MathOp
+    syntax ImportantOps ::= LogicShiftOp
                           | ExOp
-                          | MathOp
                           | CompareOp
                           | BinaryAnd
                           | BinaryOr
                           | AssignOp
+                          | AllIntFloat
+                          | Not
 
     syntax AssignOp ::= ":="
     syntax CompareOp ::= "=" | "!=" | "<" | ">"
@@ -45,6 +45,8 @@ module OCAML-SYNTAX
                      | "*."
                      | "/"
                      | "/."
+
+    syntax Not ::= "not"
 
     syntax LogicShiftOp ::= "lsl"
                           | "lsr"
@@ -172,6 +174,7 @@ module OCAML-SYNTAX
                   | Expr ArgumentList                              [left,prec(30),klabel('exprWithArgs)]
                   | "`" CapitalizedName Expr                       [left,prec(30),klabel('exprWithTag)]
                   | Constr Expr                                    [left,prec(30),klabel('exprWithConstr)]
+                  | Not Expr                                        [prec(35),klabel('unaryOp)]
                   | MinusUnOp Expr                                     [prec(35),klabel('unaryOp)]
                   | Expr ExOp Expr                                 [right,prec(40),klabel('binaryRightOp)]
                   | Expr LogicShiftOp Expr                         [right,prec(40),klabel('binaryRightOp)]
