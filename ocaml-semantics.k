@@ -28,24 +28,27 @@ module OCAML-TRANS
     imports OCAML-SYNTAX
     imports OCAML-ABSTRACT-SYNTAX
     
-    syntax KItem ::= translation(ModuleItemListFactor) [function]
-    syntax KItem ::= translationParam(Parameter) [function]
-    syntax KItem ::= translationLetBindings(LetBindingList) [function]
-    syntax KItem ::= translationLetRecBindings(LetBindingList) [function]
+    syntax KItem ::= translation(ModuleItemListFactor)    
+    syntax KItem ::= translationParam(Parameter)
+    syntax KItem ::= translationLetBindings(LetBindingList)
+    syntax KItem ::= translationLetRecBindings(LetBindingList)
 //    syntax KItem ::= translation(Expr)  [function]
 //    syntax KItem ::= translations(Exprs)  [function]
  //   syntax KItem ::= translationTuples(Tuples)  [function]
 //    syntax KItem ::= translationTupleNext(TupleNext)  [function]
 //    syntax KItem ::= translation(BExp) [function]
 
- rule translation(I:Int) => ExInt(I)
+ rule translation(I:IntegerLiteral) => ExInt(String2Int(#tokenToString(I)))
+  rule translation(F:FloatLiteral) => ExFloat(String2Float(#tokenToString(F)))
 // rule translation(false) => ExInt(0)
 // rule translation(true) => ExInt(1) 
  rule translation(I:ValueName) => ExId(I)
 
 //Binary Integer Operator Expressions
  rule translation('binaryLeftOp(E1:Expr,, Bin:ImportantOps ,, E2:Expr)) => ExApp(ExApp(ExId(IdLid(Bin)), translation(E1)),translation(E2)) 
-  rule translation('unaryOp(Un:MinusUnOp ,, E1:Expr)) => ExApp(ExId(IdLid(Un)), translation(E1))
+ rule translation('unaryOp(Un:Minus ,, E1:Expr)) => ExApp(ExApp(ExId(IdLid(Un)), ExInt(0)),translation(E1)) 
+ rule translation('unaryOp(Un:MinusDot ,, E1:Expr)) => ExApp(ExApp(ExId(IdLid(Un)), ExFloat(Int2Float(0,53,11))),translation(E1)) 
+ //      when E1 =/=KList .KList
 
 // rule translation(E1:Exp - E2:Exp) => ExApp(ExApp(ExId(IdLid("-")), translation(E1)),translation(E2))
 // rule translation(E1:Exp * E2:Exp) => ExApp(ExApp(ExId(IdLid("*")), translation(E1)),translation(E2))
@@ -633,8 +636,8 @@ module OCAML-INIT
             IdLid(*) |-> external(%mulint, 2)
             IdLid(/) |-> external(%divint, 2)
             IdLid(mod) |-> external(%modint, 2)
-            IdLid(-) |-> external(%negint, 1)) //TODO - monop vs binop 
-         ~> preassign(
+    //        IdLid(-) |-> external(%negint, 1)//TODO - monop vs binop 
+     )    ~> preassign(
    //         IdLid(not) |-> external(%boolnot, 1) // to cover later
             IdLid(&&) |-> external(%sequand, 2)
             IdLid(||) |-> external(%sequor, 2)

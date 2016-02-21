@@ -19,7 +19,8 @@ module OCAML-SYNTAX
     syntax Minus ::= "-"
     syntax MinusDot ::= "-."
     syntax Variance ::= Plus | Minus
-    syntax AllPlusAndMinus ::= Variance | "+." |MinusDot
+    syntax PlusUnOp ::= Plus | "+."
+    syntax AllPlusAndMinus ::= MinusUnOp | PlusUnOp
     syntax MinusUnOp ::= Minus | MinusDot
 
     syntax ImportantOps ::= AllPlusAndMinus
@@ -171,8 +172,7 @@ module OCAML-SYNTAX
                   | Expr ArgumentList                              [left,prec(30),klabel('exprWithArgs)]
                   | "`" CapitalizedName Expr                       [left,prec(30),klabel('exprWithTag)]
                   | Constr Expr                                    [left,prec(30),klabel('exprWithConstr)]
-                  | Minus Expr                                     [prec(35),klabel('unaryOp)]
-                  | MinusDot Expr                                  [prec(35),klabel('unaryOp)]
+                  | MinusUnOp Expr                                     [prec(35),klabel('unaryOp)]
                   | Expr ExOp Expr                                 [right,prec(40),klabel('binaryRightOp)]
                   | Expr LogicShiftOp Expr                         [right,prec(40),klabel('binaryRightOp)]
                   | Expr MathOp Expr                               [left,prec(45),klabel('binaryLeftOp)]

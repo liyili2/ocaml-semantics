@@ -31,6 +31,7 @@ imports  OCAML-SYNTAX
     syntax O ::= "ExNil"
     syntax O ::= ExId(K) // id
     syntax O ::= ExInt(Int)
+    syntax O ::= ExFloat(Float)
     syntax O ::= ExApp(K, K) // e1 e2
     syntax O ::= ExTup(K) [strict, hybrid]
     syntax O ::= ExCom(K, K) [strict, hybrid]
@@ -52,7 +53,7 @@ imports  OCAML-SYNTAX
     syntax KItem ::= K "<-" K
     syntax O ::= TyId(K)
 
-    syntax AllOps ::= Unit| ConsOp | ImportantOps | LogicShiftOp | ExOp   | MathOp  | CompareOp   | BinaryAnd    | BinaryOr | AssignOp | MinusUnOp
+    syntax AllOps ::= Unit| ConsOp | ImportantOps 
 
     // option types are sometimes used in the AST
     // TODO maybe we should fix this?
