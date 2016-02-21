@@ -103,6 +103,9 @@ rule BiAnd(true, false) => ExBool(false)
 
 rule translationParam(X:ValueName) => PaId(X) 
 
+
+//rule String2Int(#tokenToString(V:K)) => valValue(V) 
+
 endmodule
 
 
@@ -117,6 +120,7 @@ module OCAML-CONFIGURATION
             <k color="LightGreen"> initEnv ~> translation($PGM:ModuleItemListFactor) </k>
             <env color="LightSkyBlue"> .Map </env>
             <store color="LightSteelBlue"> .Map </store>
+            <tenv color="GreenYellow"> .Map </tenv>
             <xstack color="LightSlateBlue"> .K </xstack>
             <nextLoc> 0 </nextLoc>
             <assign> .Map </assign>
@@ -311,6 +315,9 @@ module OCAML-LET-LETREC
 
     syntax KItem ::= "recbind" "(" K ")"
     syntax KItem ::= "assign" "(" K ")"
+    syntax KItem ::= "assignType" "(" K ")"
+    syntax KItem ::= "assignTypes" "(" K ")"
+
 
     context assign(BiEq(_, HOLE))
 
@@ -333,6 +340,13 @@ module OCAML-LET-LETREC
         <k> assign(BiEq(PaId(X:Id), V:KResult)) => .K ...</k>
         <env>... X |-> L:Loc ...</env>
         <store>... .Map => L |-> V ...</store>
+
+
+ //   rule type T:TypeDef Ts:TypeDefList   =>  assignType(T) ~>  assignTypes(Ts)
+  //  rule assignTypes(.TypeDefList) => . 
+  //  rule assignTypes(T:TypeDef Ts:TypeDefList) => assignType(T) ~> assignTypes(Ts)
+
+  //  rule 
 
 endmodule
 
