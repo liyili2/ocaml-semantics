@@ -69,7 +69,6 @@ module OCAML-SYNTAX
                      [onlyLabel]
                    | Token{([0b]| [0B])[0-1][0-1 \_]*}
                      [onlyLabel]
-		   | Int
     syntax FloatLiteral ::= Token{[0-9][0-9 \_]*(([\.][0-9 \_]*)|(([e]|[E])([\+]|[\-])?[0-9][0-9 \_]*))}
                      [onlyLabel]
     syntax CharLiteral ::= Token{[\'] (~[\' \\]) [\']} [onlyLabel]
@@ -234,7 +233,8 @@ module OCAML-SYNTAX
 
     syntax InstNameExpr ::= LowerCaseName "=" Expr
     syntax InstNameExprList ::= InstNameExpr | InstNameExpr ";" InstNameExprList
-    syntax LetBinding ::= Pattern "=" Expr | ValueName ParameterList "=" Expr
+    syntax LetBinding ::= Pattern "=" Expr [klabel('patternexpr)]
+                        | ValueName ParameterList "=" Expr // TODO how to translate ParameterList
                         | ValueName ParameterList ":" TypeExpr "=" Expr
                         | ValueName ParameterList ":>" TypeExpr "=" Expr
                         | ValueName ParameterList ":" TypeExpr ":>" TypeExpr "=" Expr

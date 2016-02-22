@@ -29,7 +29,7 @@ module OCAML-TRANS
     imports OCAML-ABSTRACT-SYNTAX
     
     syntax KItem ::= translation(ModuleItemListFactor)   [function] 
-    syntax KItem ::= translationParam(Parameter) //[function] 
+    syntax KItem ::= translationParam(Parameter) [function] 
     syntax KItem ::= translationLetBindings(LetBindingList) 
     syntax KItem ::= translationLetRecBindings(LetBindingList) 
 //    syntax KItem ::= translation(Expr)  [function]
@@ -45,7 +45,8 @@ module OCAML-TRANS
    rule translation(B:Bool) => ExBool(B)
 // rule translation(false) => ExInt(0)
 // rule translation(true) => ExInt(1) 
- rule translation(I:ValueName) => ExId(I)
+ rule translation(I:LowerCaseName) => ExId(String2Id(#tokenToString(I)))
+ rule translation((O:ImportantOps)) => ExId(IdLid(O))
 
 //Binary Integer Operator Expressions
  rule translation('binaryLeftOp(E1:Expr,, Bin:AllIntFloat ,, E2:Expr)) => ExApp(ExApp(ExId(IdLid(Bin)), translation(E1)),translation(E2)) 
@@ -58,8 +59,8 @@ module OCAML-TRANS
 // rule translation(E1:Exp / E2:Exp) => ExApp(ExApp(ExId(IdLid("/")), translation(E1)),translation(E2))
 
 // Binary boolean Operator Expressions
- rule translation('binaryLeftOp (B1:Expr,, Or:BinaryOr ,, B2:Expr)) => McOr(translation(B1), translation(B2))
- rule translation('binaryRightOp (B1:Expr,, Or:BinaryAnd ,, B2:Expr)) => BiAnd(translation(B1), translation(B2))
+ rule translation('binaryLeftOp (B1:Expr,, Or:BinaryOr ,, B2:Expr)) => ExIfe(translation(B1), ExBool(true), translation(B2))
+ rule translation('binaryRightOp (B1:Expr,, Or:BinaryAnd ,, B2:Expr)) => BiAnd(translation(B1), translation(B2)) //to be desugared into ExIfe
 rule translation('unaryOp(Un:Not ,, E1:Expr)) => ExApp(ExId(IdLid(Un)),translation(E1))
 
 
@@ -75,8 +76,10 @@ rule translation('unaryOp(Un:Not ,, E1:Expr)) => ExApp(ExId(IdLid(Un)),translati
  rule translation(E1:Expr ; E2:Expr)  => ExSem(translation(E1),translation(E2))
  rule translation(if E1:Expr then E2:Expr else E3:Expr)
                       => ExIfe(translation(E1),translation(E2),translation(E3))
- rule translation(let Bl:LetBindingList in E3:Expr)
-                      => ExLet(translationLetBindings(Bl),translation(E3))
+ rule translation(let 'patternexpr(X:Pattern,,E1:Expr) and Bl:LetBindingList in E3:Expr) => translation(let Bl:LetBindingList in ((fun X .ParameterList -> E3) E1) ) //what if variable occurs twice?
+ rule translation(let 'patternexpr(X:Pattern,,E1:Expr) in E3:Expr) => translation(((fun X .ParameterList -> E3) E1))
+
+//                      => ExLet(translationLetBindings(Bl),translation(E3))
  rule translation(let rec Bl:LetBindingList in E3:Expr)
                       => ExRec(translationLetRecBindings(Bl),translation(E3))
 // rule translation(match E1 with P:PatternMatching) TODO FIX ExMat, adapt to multiple arguments
@@ -101,8 +104,8 @@ rule BiAnd(true, true) => ExBool(true)
 rule BiAnd(false, _) => ExBool(false)
 rule BiAnd(true, false) => ExBool(false)
 
-rule translationParam(X:ValueName) => PaId(X) 
-
+rule translationParam(X:ValueName) => PaId(String2Id(#tokenToString(X))) 
+//rule translationParam(X:ValueName) => PaId(X) 
 
 //rule String2Int(#tokenToString(V:K)) => valValue(V) 
 
@@ -285,9 +288,10 @@ module OCAML-LET-LETREC
 
     //@ Variable lookup
     rule
-        <k> ExId(LId:LId) => K ...</k>
+        <k> ExId(LId:Id) => K ...</k>
         <env>... LId |-> L:Loc ...</env>
         <store>... L |-> K:K ...</store>
+
 
 
     syntax KItem ::= "group" "(" K "," K ")"
@@ -371,11 +375,11 @@ module OCAML-FUNCTIONS
 
 
     rule
-        <k> apply(closure(Env':Map, MC:K), valValue(V:KResult)) => ExMat(V, MC) ~> env(Env) ...</k>
+        <k> apply(closure(Env':Map, MC:K), V:KResult) => ExMat(V, MC) ~> env(Env) ...</k>
         <env> Env => Env' </env>
 
     rule
-        <k> apply(closure(Env':Map, MC:K), valValue(V:KResult), Args:ElemList) => apply(ExMat(V, MC), Args) ~> env(Env) ...</k>
+        <k> apply(closure(Env':Map, MC:K), V:KResult, Args:ElemList) => apply(ExMat(V, MC), Args) ~> env(Env) ...</k>
         <env> Env => Env' </env>
 
 endmodule
@@ -475,14 +479,14 @@ module OCAML-PATTERNS
 
 
     rule
-        <patterns> (PaId(X:LowerCaseName) <- K:K) => .K ...</patterns>
+        <patterns> (PaId(X:Id) <- K:K) => .K ...</patterns>
         <subst>... .Map => X |-> K ...</subst>
 
     rule PaAny <- K:K => .K [anywhere] //wildcard. 
 
-    rule PaId(UId:UId) <- UId => .K [anywhere]
+//    rule PaId(UId:UId) <- UId => .K [anywhere]
 
-    rule PaId(IdUid("()")) <- unit => .K [anywhere]
+   // rule PaId(IdUid("()")) <- unit => .K [anywhere]
 
     rule PaTup(Pat:K) <- ExTup(Exp:K) => Pat <- Exp [anywhere]
 
@@ -566,7 +570,7 @@ module OCAML-MATCHING
     rule
         <k> matching => assigning ~> K ~> env(Env) ...</k>
         <env> Env:Map </env>
-        <assign> . => Subst </assign>
+        <assign> _ => Subst </assign>
         <matchK> match-success(K:K, Subst:Map) => . </matchK>
 
     syntax KItem

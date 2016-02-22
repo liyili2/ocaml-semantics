@@ -9,7 +9,8 @@ imports  OCAML-SYNTAX
     syntax Id ::= LId | UId
     syntax O ::= Id
 
-    syntax O ::= PaId(K)
+    syntax O ::= PaId(ValueName)
+    syntax O ::= PaId(Id)
     syntax O ::= PaInt(Int)
     syntax O ::= "PaAny"
     syntax O ::= PaAli(K, K)
@@ -20,7 +21,7 @@ imports  OCAML-SYNTAX
     syntax O ::= PaApp(K, K)
 
     syntax O ::= McOr(K, K)
-    syntax O ::= McArr(K, K, K) 
+    syntax O ::= McArr(K, K, K) [strict(1)]
 
     syntax O ::= BiAnd(K, K) [seqstrict]
     syntax O ::= BiEq(K, K) // pat = v
@@ -29,7 +30,7 @@ imports  OCAML-SYNTAX
     syntax O ::= RbSem(K, K) [strict, superheat, hybrid]
 
     syntax O ::= "ExNil"
-    syntax O ::= ExId(K) // id
+    syntax O ::= ExId(Id) // id
     syntax O ::= ExBool(Bool)
     syntax O ::= ExInt(Int)
     syntax O ::= ExFloat(Float)
@@ -68,7 +69,7 @@ imports  OCAML-SYNTAX
     syntax ElementResult ::= valValue(K)
     syntax Element ::= ElementResult
     syntax KResult ::= ElementResult
-    rule val(K:KResult) => valValue(K) [structural]
+    rule val(K:KResult) => K [structural]
 
     syntax ElemList ::= List{Element,","} [strict]
     syntax Int ::= lengthOfList(ElemList) [function]
