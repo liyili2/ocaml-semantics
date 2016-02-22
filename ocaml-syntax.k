@@ -155,9 +155,9 @@ module OCAML-SYNTAX
                          | Pattern ";" PatternList
     syntax FieldPatternList ::= FieldPattern
                               | FieldPattern ";" FieldPatternList
-    syntax FieldPattern ::= Field "=" Pattern
+    syntax FieldPattern ::= Field "=" Pattern        [klabel('fieldPatternAssign)]
     syntax FieldExprList ::= FieldExpr | FieldExpr ";" FieldExprList
-    syntax FieldExpr ::= Field "=" Expr
+    syntax FieldExpr ::= Field "=" Expr              [klabel('fieldExprAssign)]
     syntax Field ::= LowerCaseName | CapitalizedName "." Field
 
     //define expressions.
@@ -231,9 +231,9 @@ module OCAML-SYNTAX
                             | Expr "." "(" Expr ")"
                             | Expr "." "[" Expr "]"
 
-    syntax InstNameExpr ::= LowerCaseName "=" Expr
+    syntax InstNameExpr ::= LowerCaseName "=" Expr             [klabel('instNameAssign)]
     syntax InstNameExprList ::= InstNameExpr | InstNameExpr ";" InstNameExprList
-    syntax LetBinding ::= Pattern "=" Expr //[klabel('patternexpr)]
+    syntax LetBinding ::= Pattern "=" Expr [klabel('patternexpr),prefer]
                         | ValueName ParameterList "=" Expr // TODO how to translate ParameterList
                         | ValueName ParameterList ":" TypeExpr "=" Expr
                         | ValueName ParameterList ":>" TypeExpr "=" Expr

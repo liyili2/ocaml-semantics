@@ -76,8 +76,9 @@ rule translation('unaryOp(Un:Not ,, E1:Expr)) => ExApp(ExId(IdLid(Un)),translati
  rule translation(E1:Expr ; E2:Expr)  => ExSem(translation(E1),translation(E2))
  rule translation(if E1:Expr then E2:Expr else E3:Expr)
                       => ExIfe(translation(E1),translation(E2),translation(E3))
- rule translation(let X:Pattern = E1:Expr and Bl:LetBindingList in E3:Expr) => translation(let Bl:LetBindingList in ((fun X .ParameterList -> E3) E1) ) //what if variable occurs twice?
- rule translation(let X:Pattern = E1:Expr in E3:Expr) => translation(((fun X .ParameterList -> E3) E1))
+ //rule translation(let X:Pattern = E1:Expr and Bl:LetBindingList in E3:Expr) => translation(let Bl:LetBindingList in ((fun 
+//X .ParameterList -> E3) E1) ) //what if variable occurs twice?
+ rule translation(let 'patternexpr(X:Pattern,, E1:Expr) in E3:Expr) => translation(((fun X .ParameterList -> E3) E1))  //use the ExFun directly. 
 
 //                      => ExLet(translationLetBindings(Bl),translation(E3))
  rule translation(let rec Bl:LetBindingList in E3:Expr)
