@@ -233,7 +233,7 @@ module OCAML-SYNTAX
 
     syntax InstNameExpr ::= LowerCaseName "=" Expr
     syntax InstNameExprList ::= InstNameExpr | InstNameExpr ";" InstNameExprList
-    syntax LetBinding ::= Pattern "=" Expr [klabel('patternexpr)]
+    syntax LetBinding ::= Pattern "=" Expr //[klabel('patternexpr)]
                         | ValueName ParameterList "=" Expr // TODO how to translate ParameterList
                         | ValueName ParameterList ":" TypeExpr "=" Expr
                         | ValueName ParameterList ":>" TypeExpr "=" Expr
@@ -289,7 +289,7 @@ module OCAML-SYNTAX
                        | "[" TypeExprList "]" Field
                        | ClassExpr ArgumentList                          [left]
                        > "fun" Parameter ParameterList "->" ClassExpr
-                       | "let" LetBindingList "in" ClassExpr
+                       | "let" LetBindingList "in" ClassExpr [klabel('classletin)]
                        | "let" "rec" LetBindingList "in" ClassExpr
                        | ObjectClassBody
                        | "(" ClassExpr ":" ClassType ")"
