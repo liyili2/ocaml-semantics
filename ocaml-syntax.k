@@ -234,7 +234,7 @@ module OCAML-SYNTAX
     syntax InstNameExpr ::= LowerCaseName "=" Expr             [klabel('instNameAssign)]
     syntax InstNameExprList ::= InstNameExpr | InstNameExpr ";" InstNameExprList
     syntax LetBinding ::= Pattern "=" Expr [klabel('patternexpr),prefer]
-                        | ValueName ParameterList "=" Expr // TODO how to translate ParameterList
+                        | ValueName ParameterList "=" Expr [klabel('letfunexpr),prefer] // TODO how to translate ParameterList
                         | ValueName ParameterList ":" TypeExpr "=" Expr
                         | ValueName ParameterList ":>" TypeExpr "=" Expr
                         | ValueName ParameterList ":" TypeExpr ":>" TypeExpr "=" Expr
