@@ -85,22 +85,23 @@ module OCAML-SYNTAX
     syntax TypeExpr ::= Identifier
                       | "_" [onlyLabel, klabel('typeAny)]
                       | TypeConstr
-                      | TypeExpr TypeConstr                    [prec(5)]
-                      | "(" TypeExprList ")" TypeConstr        [prec(5)]
-                      | TypeExpr "*" TypeExpr                  [prec(5),left]
-                      | "<" ">"                                [prec(5)]
-                      | "<" ".." ">"                           [prec(5)] 
-                      | "<" MethodTypeList ">"                 [prec(5),klabel('methodTypeListAsType)]
-                      | "<" MethodTypeList ";" ">"             [prec(5),klabel('methodTypeListAsType)]
-                      | "<" MethodTypeList ";" ".." ">"        [prec(5)] 
-                      | ConsOp Field                           [prec(6),klabel('onlyFieldType)] 
-                      | TypeExpr ConsOp Field                  [prec(6),klabel('typeFieldType)] 
-                      | "(" TypeExprList ")" ConsOp Field      [prec(6),klabel('typeListFieldField)] 
-                      | ArrowTypeExpr                          [prec(7)] 
-                      | "?" LowerCaseName ":" ArrowTypeExpr    [prec(7)] 
-                      | LowerCaseName ":" ArrowTypeExpr        [prec(7)] 
-                      | TypeExpr "as" Identifier               [prec(8)] 
-                      |"(" TypeExpr ")"                        [bracket,prec(8)]
+                      |"(" TypeExpr ")"                        [bracket]
+                      > TypeExpr TypeConstr                    
+                      | "(" TypeExprList ")" TypeConstr        
+                      | TypeExpr "*" TypeExpr                  [left]
+                      | "<" ">"
+                      | "<" ".." ">" 
+                      | "<" MethodTypeList ">"                 [klabel('methodTypeListAsType)]
+                      | "<" MethodTypeList ";" ">"             [klabel('methodTypeListAsType)]
+                      | "<" MethodTypeList ";" ".." ">" 
+                      > ConsOp Field                           [klabel('onlyFieldType)] 
+                      | TypeExpr ConsOp Field                  [klabel('typeFieldType)] 
+                      | "(" TypeExprList ")" ConsOp Field      [klabel('typeListFieldField)] 
+                      > ArrowTypeExpr
+                      | "?" LowerCaseName ":" ArrowTypeExpr
+                      | LowerCaseName ":" ArrowTypeExpr
+                      > TypeExpr "as" Identifier
+
 
     syntax TypeConstr ::= LowerCaseName | ExtendedModulePath "." LowerCaseName
     syntax ExtendedModuleName ::= CapitalizedName | ExtendedModuleName "(" ExtendedModulePath ")"
@@ -133,23 +134,23 @@ module OCAML-SYNTAX
     syntax Pattern ::= ValueName
 		| "_"  [onlyLabel, klabel('paAny)]
 		| Constant
-                | CharLiteral ".." CharLiteral       [left,prec(10)]
-                | "lazy" Pattern                     [prec(11)]
-		| "(" Pattern ":" TypeExpr ")"       [prec(11),klabel('patternWithType)]
-		| Constr Pattern                     [prec(11),klabel('patternWithConstr)]
-                | "`" CapitalizedName Pattern        [prec(11),klabel('patternWithTag)]
-                | ConsOp TypeConstr                  [prec(11),klabel('typeConstrPattern)]
-                | Pattern ListOp Pattern             [right,prec(12),klabel('listOpPattern)]
-                | Pattern SepOp Pattern              [left,prec(13),klabel('sepOpPattern)]
-                | Pattern "|" Pattern                [left,prec(14),klabel('patternList)]
-                | Pattern "as" ValueName             [prec(15),klabel('patternAsName)]
-                | "[" PatternList "]"                [prec(15),klabel('patternAsList)]
-                | "[" PatternList ";" "]"            [prec(15),klabel('patternAsList)]
-                | "[|" PatternList "|]"              [prec(15),klabel('patternAsRecord)]
-                | "[|" PatternList ";" "|]"          [prec(15),klabel('patternAsRecord)]
-                | "[|" FieldPatternList "|]"         [prec(15),klabel('patternAsField)]
-                | "[|" FieldPatternList ";" "|]"     [prec(15),klabel('patternAsField)]
-		| "(" Pattern ")"                    [prec(15),bracket]
+		| "(" Pattern ")"                    [bracket]
+                > CharLiteral ".." CharLiteral       [left]
+                > "lazy" Pattern
+		| "(" Pattern ":" TypeExpr ")"       [klabel('patternWithType)]
+		| Constr Pattern                     [klabel('patternWithConstr)]
+                | "`" CapitalizedName Pattern        [klabel('patternWithTag)]
+                | ConsOp TypeConstr                  [klabel('typeConstrPattern)]
+                > Pattern ListOp Pattern             [right,klabel('listOpPattern)]
+                > Pattern SepOp Pattern              [left,klabel('sepOpPattern)]
+                > Pattern "|" Pattern                [left,klabel('patternList)]
+                > Pattern "as" ValueName             [klabel('patternAsName)]
+                | "[" PatternList "]"                [klabel('patternAsList)]
+                | "[" PatternList ";" "]"            [klabel('patternAsList)]
+                | "[|" PatternList "|]"              [klabel('patternAsRecord)]
+                | "[|" PatternList ";" "|]"          [klabel('patternAsRecord)]
+                | "[|" FieldPatternList "|]"         [klabel('patternAsField)]
+                | "[|" FieldPatternList ";" "|]"     [klabel('patternAsField)]
 
     syntax PatternList ::= Pattern
                          | Pattern ";" PatternList
@@ -162,60 +163,60 @@ module OCAML-SYNTAX
 
     //define expressions.
     syntax ValuePath ::= ValueName | CapitalizedName "." ValuePath
-    syntax Expr ::= Constant                                       [prec(10)]
-                  | ValuePath                                      [prec(10)]
-                  | PrefixSymbol Expr                              [prec(15)]
-                  | AllowArrowExpr                                 [prec(20)]
-                  | Expr ConsOp LowerCaseName                      [prec(25),klabel('exprAsName)]
-                  | "assert" Expr                                  [prec(30)]
-                  | "lazy" Expr                                    [prec(30)]
-                  | "new" Field                                    [prec(30)]
-                  | Expr ArgumentList                              [left,prec(30),klabel('exprWithArgs)]
-                  | "`" CapitalizedName Expr                       [left,prec(30),klabel('exprWithTag)]
-                  | Constr Expr                                    [left,prec(30),klabel('exprWithConstr)]
-                  | Not Expr                                        [prec(35),klabel('unaryOp)]
-                  | MinusUnOp Expr                                     [prec(35),klabel('unaryOp)]
-                  | Expr ExOp Expr                                 [right,prec(40),klabel('binaryRightOp)]
-                  | Expr LogicShiftOp Expr                         [right,prec(40),klabel('binaryRightOp)]
-                  | Expr MathOp Expr                               [left,prec(45),klabel('binaryLeftOp)]
-                  | Expr AllPlusAndMinus Expr                      [left,klabel('binaryLeftOp),prec(50)]
-                  | Expr ListOp Expr                                 [right,prec(55),klabel('binaryRightOp)]
-                  | Expr ConcatOp Expr                             [right,prec(60),klabel('binaryRightOp)]
-                  | Expr CompareOp Expr                            [right,prec(65),klabel('binaryRightOp)]
-                  | Expr BinaryAnd Expr                            [right,prec(70),klabel('binaryRightOp)]
-                  | Expr BinaryOr Expr                             [left,prec(75),klabel('binaryLeftOp)]
-                  | Expr InfixSymbol Expr                          [avoid,left,prec(80),klabel('binaryLeftOp)]
-                  | Expr SepOp Expr                                [left,prec(85),klabel('binaryLeftOp)]
-                  | AllowArrowExpr "<-" Expr                       [right,prec(90),klabel('assignTo)]
-                  | Expr AssignOp Expr                             [right,prec(90),klabel('binaryRightOp)]
-                  | "if" Expr "then" Expr                          [prec(95)]
-                  | "if" Expr "then" Expr "else" Expr              [prec(95)]
-                  | Expr ListSepOp Expr                            [right,prec(100),klabel('binaryRightOp)]
-                  | "match" Expr "with" PatternMatching            [prec(105),klabel('matchingExpr)]
-                  | "function" PatternMatching                     [prec(105)]
-                  | "fun" MultipleMatching                         [prec(105)]
-                  | "try" Expr "with" PatternMatching              [prec(105)]
-                  | "let" LetBindingList "in" Expr                 [prec(105)]
-                  | "let" "rec" LetBindingList "in" Expr           [prec(105)]
-                  | "begin" Expr "end"                             [prec(105)]
-                  | "while" Expr "do" Expr "done"                  [prec(105)]
-                  | "for" ValueName "=" Expr "to" Expr "do" Expr "done"      [prec(105)]
-                  | "for" ValueName "=" Expr "downto" Expr "do" Expr "done"  [prec(105)]
-                  | ObjectClassBody                                          [prec(105)]
-                  | "(" Expr ":" TypeExpr ")"                                [prec(105)]
-                  | "(" Expr ":>" TypeExpr ")"                               [prec(105)]
-                  | "(" Expr ":" TypeExpr ":>" TypeExpr ")"                  [prec(105)]
-                  | "[" ExprList "]"                            [klabel('exprAsList),prec(105)]
-                  | "[" ExprList ";" "]"                        [klabel('exprAsList),prec(105)]
-                  | "[|" ExprList "|]"                          [klabel('exprBarAsList),prec(105)]
-                  | "[|" ExprList ";" "|]"                      [klabel('exprBarAsList),prec(105)]
-                  | "{" FieldExprList "}"                       [klabel('fieldExprAsList),prec(105)]
-                  | "{" FieldExprList ";" "}"                   [klabel('fieldExprAsList),prec(105)]
-                  | "{" Expr "with" FieldExprList "}"           [klabel('theFieldExprAsList),prec(105)]
-                  | "{" Expr "with" FieldExprList ";" "}"       [klabel('theFieldExprAsList),prec(105)]
-                  | "{<" InstNameExprList ">}"                  [klabel('instNameExprAsList),prec(105)]
-                  | "{<" InstNameExprList ";" ">}"              [klabel('instNameExprAsList),prec(105)]
-                  | "(" Expr ")"                                [bracket,prec(105)]
+    syntax Expr ::= Constant
+                  | ValuePath
+                  | "(" Expr ")"                                   [bracket]
+                  > PrefixSymbol Expr
+                  > AllowArrowExpr
+                  > Expr ConsOp LowerCaseName                      [klabel('exprAsName)]
+                  > "assert" Expr
+                  | "lazy" Expr
+                  | "new" Field
+                  | Expr ArgumentList                              [left,klabel('exprWithArgs)]
+                  | "`" CapitalizedName Expr                       [left,klabel('exprWithTag)]
+                  | Constr Expr                                    [left,klabel('exprWithConstr)]
+                  > Not Expr                                       [klabel('unaryOp)]
+                  | MinusUnOp Expr                                 [klabel('unaryOp)]
+                  > Expr ExOp Expr                                 [right,klabel('binaryExOp)]
+                  | Expr LogicShiftOp Expr                         [right,klabel('binaryLogicOp)]
+                  > Expr MathOp Expr                               [left,klabel('mathTimesOp)]
+                  > Expr AllPlusAndMinus Expr                      [left,klabel('mathPlusOp)]
+                  > Expr ListOp Expr                               [right,klabel('binaryListOp)]
+                  > Expr ConcatOp Expr                             [right,klabel('concatOp)]
+                  > Expr CompareOp Expr                            [right,klabel('compareOp)]
+                  > Expr BinaryAnd Expr                            [right,klabel('binaryAndOp)]
+                  > Expr BinaryOr Expr                             [left,klabel('binaryOrOp)]
+                  > Expr InfixSymbol Expr                          [avoid,left,klabel('binaryUnknownOp)]
+                  > Expr SepOp Expr                                [left,klabel('binarySepOp)]
+                  > AllowArrowExpr "<-" Expr                       [right,klabel('assignTo)]
+                  | Expr AssignOp Expr                             [right,klabel('binaryAssignOp)]
+                  > "if" Expr "then" Expr
+                  | "if" Expr "then" Expr "else" Expr
+                  > Expr ListSepOp Expr                            [right,klabel('binaryListSepOp)]
+                  > "match" Expr "with" PatternMatching            [klabel('matchingExpr)]
+                  | "function" PatternMatching
+                  | "fun" MultipleMatching
+                  | "try" Expr "with" PatternMatching
+                  | "let" LetBindingList "in" Expr
+                  | "let" "rec" LetBindingList "in" Expr
+                  | "begin" Expr "end"
+                  | "while" Expr "do" Expr "done"
+                  | "for" ValueName "=" Expr "to" Expr "do" Expr "done"
+                  | "for" ValueName "=" Expr "downto" Expr "do" Expr "done"
+                  | ObjectClassBody
+                  | "(" Expr ":" TypeExpr ")"
+                  | "(" Expr ":>" TypeExpr ")"
+                  | "(" Expr ":" TypeExpr ":>" TypeExpr ")"
+                  | "[" ExprList "]"                            [klabel('exprAsList)]
+                  | "[" ExprList ";" "]"                        [klabel('exprAsList)]
+                  | "[|" ExprList "|]"                          [klabel('exprBarAsList)]
+                  | "[|" ExprList ";" "|]"                      [klabel('exprBarAsList)]
+                  | "{" FieldExprList "}"                       [klabel('fieldExprAsList)]
+                  | "{" FieldExprList ";" "}"                   [klabel('fieldExprAsList)]
+                  | "{" Expr "with" FieldExprList "}"           [klabel('theFieldExprAsList)]
+                  | "{" Expr "with" FieldExprList ";" "}"       [klabel('theFieldExprAsList)]
+                  | "{<" InstNameExprList ">}"                  [klabel('instNameExprAsList)]
+                  | "{<" InstNameExprList ";" ">}"              [klabel('instNameExprAsList)]
 
     syntax ExprList ::= Expr
                       | Expr ";" ExprList
