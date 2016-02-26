@@ -234,8 +234,8 @@ module OCAML-SYNTAX
 
     syntax InstNameExpr ::= LowerCaseName "=" Expr             [klabel('instNameAssign)]
     syntax InstNameExprList ::= InstNameExpr | InstNameExpr ";" InstNameExprList
-    syntax LetBinding ::= Pattern "=" Expr [klabel('patternexpr),prefer]
-                        | ValueName ParameterList "=" Expr [klabel('letfunexpr),prefer] // TODO how to translate ParameterList
+    syntax LetBinding ::= ValueName ParameterList "=" Expr [klabel('letfunexpr),prefer] // TODO how to translate ParameterList
+                        | Pattern "=" Expr [klabel('patternexpr)]
                         | ValueName ParameterList ":" TypeExpr "=" Expr
                         | ValueName ParameterList ":>" TypeExpr "=" Expr
                         | ValueName ParameterList ":" TypeExpr ":>" TypeExpr "=" Expr
@@ -285,7 +285,6 @@ module OCAML-SYNTAX
                        | LowerCaseName ":" TypeExpr "->" ClassType
                        | "?" LowerCaseName ":" TypeExpr "->" ClassType
 
-    syntax ObjectClassBody ::= "object" ClassBody "end"
     syntax ClassExpr ::= Field
                        | "[" TypeExprList "]" Field
                        | ClassExpr ArgumentList                          [left]
@@ -308,8 +307,10 @@ module OCAML-SYNTAX
                         | "method" Virtual Private LowerCaseName ":" PolyTypeExpr
                         | ConstraintTypeOfType
                         | "initializer" Expr
-    syntax ClassFieldList ::= List{ClassField,""}
-    syntax ClassBody ::= ClassFieldList | "(" Pattern ")" ClassFieldList
+    syntax ObjectClassBody ::= "object" ClassBody "end"
+    syntax ClassFieldList ::= List{ClassField,""}                    [klabel('classFieldCon)]
+    syntax ClassBody ::= ClassFieldList
+                       | "(" Pattern ")" ClassFieldList
                        | "(" Pattern ":" TypeExpr ")" ClassFieldList
 
     syntax ClassDefinition ::= "class" ClassBindingList
