@@ -32,8 +32,10 @@ module OCAML-TRANS
     
     syntax KItem ::= translation(ModuleItemListFactor)   [function] 
     syntax KItem ::= translationParam(Parameter) [function] 
-    syntax KItem ::= translationLetBindings(LetBindingList) 
-    syntax KItem ::= translationLetRecBindings(LetBindingList) 
+    syntax KItem ::= translationLetBindings(LetBindingList) [function]
+    syntax KItem ::= translationLetBinding(LetBinding) [function]
+    syntax KItem ::= translationLetRecBindings(LetBindingList) [function]
+    syntax KItem ::= translationToBindingForm(K) [function]
 //    syntax KItem ::= translation(Expr)  [function]
 //    syntax KItem ::= translations(Exprs)  [function]
  //   syntax KItem ::= translationTuples(Tuples)  [function]
@@ -81,11 +83,18 @@ rule translation('unaryOp(Un:Not ,, E1:Expr)) => ExApp(ExId(IdLid(Un)),translati
  rule translation(E1:Expr ; E2:Expr)  => ExSem(translation(E1),translation(E2))
  rule translation(if E1:Expr then E2:Expr else E3:Expr)
                       => ExIfe(translation(E1),translation(E2),translation(E3))
+ rule translation(let A:LetBindingList in E:Expr) => ExLet(translationLetBindings(A),translation(E))
+ //rule translationLetBinding(...) => translationLetBindings BiEq(PaId(String2Id(#tokenToString(X))), translation(fun P Pl  -> E1))
+ rule translationLetBindings(L:LetBinding) => translationLetBinding(L)
+ rule translationLetBindings(L1:LetBinding and L2:LetBindingList)
+                               => BiAnd(translationLetBinding(L1),translationLetBindings(L2))
+
+/*
  rule translation(let 'patternexpr(X:Pattern,, E1:Expr) and Bl:LetBindingList in E3:Expr) => translation(let Bl:LetBindingList in ((fun X .ParameterList -> E3) E1) ) //what if variable occurs twice?
  rule translation(let 'patternexpr(X:Pattern,, E1:Expr) in E3:Expr) => translation(((fun X .ParameterList -> E3) E1))  //use the ExFun directly. 
  rule translation(let 'letfunexpr(X:ValueName,, P:Parameter Pl:ParameterList,, E1:Expr) and Bl:LetBindingList in E2:Expr) => 
  assign(BiEq(PaId(String2Id(#tokenToString(X))), translation(fun P Pl  -> E1))) ~> translation(let Bl:LetBindingList in E2:Expr) 
-
+*/
 
 
 //    translation(let X P = E1)
