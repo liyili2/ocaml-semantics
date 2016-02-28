@@ -22,6 +22,8 @@ module OCAML-SYNTAX-EXTRAS
 
     syntax KItem ::= env(Map)
 
+
+
 endmodule
 
 module OCAML-TRANS
@@ -39,6 +41,8 @@ module OCAML-TRANS
 //    syntax KItem ::= translation(BExp) [function]
 
 // rule translation(K:K) => ExInt(0) [owise]
+
+ syntax KItem ::= "assign" "(" K ")"
 
  rule translation(I:IntegerLiteral) => ExInt(String2Int(#tokenToString(I)))
   rule translation(F:FloatLiteral) => ExFloat(String2Float(#tokenToString(F)))
@@ -79,7 +83,12 @@ rule translation('unaryOp(Un:Not ,, E1:Expr)) => ExApp(ExId(IdLid(Un)),translati
                       => ExIfe(translation(E1),translation(E2),translation(E3))
  rule translation(let 'patternexpr(X:Pattern,, E1:Expr) and Bl:LetBindingList in E3:Expr) => translation(let Bl:LetBindingList in ((fun X .ParameterList -> E3) E1) ) //what if variable occurs twice?
  rule translation(let 'patternexpr(X:Pattern,, E1:Expr) in E3:Expr) => translation(((fun X .ParameterList -> E3) E1))  //use the ExFun directly. 
- //rule translation(let 'letfunexpr(X:ValueName,, P:Parameter Pl:ParameterList,, E1:Expr) and Bl:LetBindingList in E2:Expr) => translation(let X P)
+ rule translation(let 'letfunexpr(X:ValueName,, P:Parameter Pl:ParameterList,, E1:Expr) and Bl:LetBindingList in E2:Expr) => 
+ assign(BiEq(PaId(String2Id(#tokenToString(X))), translation(fun P Pl  -> E1))) ~> translation(let Bl:LetBindingList in E2:Expr) 
+
+
+
+//    translation(let X P = E1)
 //                      => ExLet(translationLetBindings(Bl),translation(E3))
  rule translation(let rec Bl:LetBindingList in E3:Expr)
                       => ExRec(translationLetRecBindings(Bl),translation(E3))
@@ -319,7 +328,7 @@ module OCAML-LET-LETREC
         ...</k>
 
     syntax KItem ::= "recbind" "(" K ")"
-    syntax KItem ::= "assign" "(" K ")"
+   
     syntax KItem ::= "assignType" "(" K ")"
     syntax KItem ::= "assignTypes" "(" K ")"
 
