@@ -32,6 +32,7 @@ module OCAML-TRANS
     
     syntax KItem ::= translation(ModuleItemListFactor)   [function] 
     syntax KItem ::= translationParam(Parameter) [function] 
+    syntax KItem ::= translationApp(K, ArgumentList) [function]
     syntax KItem ::= translationParams(ParameterList, Expr) [function] 
     syntax KItem ::= translationLetBindings(LetBindingList) [function]
     syntax KItem ::= translationLetBinding(LetBinding) [function]
@@ -72,20 +73,26 @@ module OCAML-TRANS
 rule translation('unaryOp(Un:Not ,, E1:Expr)) => ExApp(ExId(IdLid(Un)),translation(E1))
 
 
- rule translation(E1:Expr E2:Expr) => ExApp(translation(E1),translation(E2))
+ //rule translation(E1:Expr E2:Expr) => ExApp(translation(E1),translation(E2))
 
-
+   rule translation(E1:Expr Args:ArgumentList) => translationApp(translation(E1),Args)
+   rule translationApp(E1:K, Arg:Argument Args:ArgumentList)
+                    => translationApp(ExApp(E1,translation(Arg)),Args)
+   rule translationApp(E1:K, Arg:Argument)
+                    => ExApp(E1,translation(Arg))
  
 //rule translation(fun Xs:ParameterList -> E:Expr) => translationParamList(Xs) ~> translation(E)
- rule translation(fun 'parameterListExpr(X:Parameter,, Xs:ParameterList,, E:Expr)) => ExFun(McArr(translationParam(X),ExNil,translationParams(Xs, E)))
+   rule translation(fun 'parameterListExpr(X:Parameter,, Xs:ParameterList,, E:Expr))
+                                  => ExFun(McArr(translationParam(X),ExNil,translationParams(Xs, E)))
 
-   translationParams(X:Parameter Xs:ParameterList, E:Expr) => ExFun(McArr(translationParam(X), ExNil, translationParams(Xs, E)))
-   translationParams(.ParameterList, E:Expr) => translation(E)
+   rule translationParams(X:Parameter Xs:ParameterList, E:Expr)
+                                  => ExFun(McArr(translationParam(X), ExNil, translationParams(Xs, E)))
+   rule translationParams(.ParameterList, E:Expr) => translation(E)
 
-   //       => translation(fun X1 .ParameterList -> (fun X2:Parameter Xs:ParameterList -> E:Expr))
+   /*       => translation(fun X1 .ParameterList -> (fun X2:Parameter Xs:ParameterList -> E:Expr))
  rule translation(fun X1:Parameter .ParameterList -> E:Expr)
             => ExFun(McArr(translationParam(X1),ExNil,translation(E))) 
-    //       => wholeFun(funFactor(translationParam(X1),translation(E)))
+    */       => wholeFun(funFactor(translationParam(X1),translation(E)))
 // rule translation(function P:PatternMatching) => wholeFun(translation(P))
  //rule translation(fun X:Parameter .ParameterList -> E:Expr)  => ExFun(McArr(PaId(X),ExNil,translation(E))) 
  //rule translation(fun X1:Parameter X2:Parameter .ParameterList -> E:Expr)  => ExFun(McArr(PaId(X1),ExNil,translation(fun X2 Xs -> E))) 
@@ -94,7 +101,7 @@ rule translation('unaryOp(Un:Not ,, E1:Expr)) => ExApp(ExId(IdLid(Un)),translati
                       => ExIfe(translation(E1),translation(E2),translation(E3))
  rule translation(let A:LetBindingList in E:Expr) => ExLet(translationLetBindings(A),translation(E))
 // rule translationLetBinding('letfunexpr(X:ValueName,, Pl: ParameterList,, E:Expr)) => BiEq(PaId(String2Id(#tokenToString(X))), translation(fun Pl -> E))
- rule translationLetBinding('patternexpr(X:Pattern,, E:Expr)) => BiEq (translation(X), translation(E))
+ rule translationLetBinding('patternexpr(X:Pattern,, E:Expr)) => BiEq(translation(X), translation(E))
  rule translationLetBindings(L:LetBinding) => translationLetBinding(L)
  rule translationLetBindings(L1:LetBinding and L2:LetBindingList)
                                => BiAnd(translationLetBinding(L1),translationLetBindings(L2))
