@@ -23,7 +23,10 @@ imports  OCAML-SYNTAX
     syntax O ::= McOr(K, K)
     syntax O ::= McArr(K, K, K) [strict(1)]
 
-    syntax O ::= BiAnd(K, K) [seqstrict]
+    syntax O ::= BinaryAnd(K,K) [seqstrict]
+    syntax O ::= BinaryOr(K,K) [seqstrict]
+
+    syntax O ::= BiAnd(K, K) [strict]
     syntax O ::= BiEq(K, K) // pat = v
 
     syntax O ::= RbEq(K, K) [strict(2), hybrid] // x = v
@@ -48,6 +51,7 @@ imports  OCAML-SYNTAX
     syntax O ::= ExLetRec(K, K)
     syntax O ::= ExTry(K, K)
     syntax O ::= ExRec(K, K) [strict(1)]
+
 
     syntax O ::= StExp(K) // expr
     syntax O ::= StSem(K, K) // st1 ;; st2

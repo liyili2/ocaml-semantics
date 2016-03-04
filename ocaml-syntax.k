@@ -234,15 +234,15 @@ module OCAML-SYNTAX
 
     syntax InstNameExpr ::= LowerCaseName "=" Expr             [klabel('instNameAssign)]
     syntax InstNameExprList ::= InstNameExpr | InstNameExpr ";" InstNameExprList
-    syntax LetBinding ::= ValueName ParameterList "=" Expr [klabel('letfunexpr),prefer] // TODO how to translate ParameterList
-                        | Pattern "=" Expr [klabel('patternexpr)]
+    syntax LetBinding ::= ValueName ParameterList "=" Expr [klabel('letfunexpr),prefer] 
+                        | Pattern "=" Expr [klabel('patternexpr), prefer]
                         | ValueName ParameterList ":" TypeExpr "=" Expr
                         | ValueName ParameterList ":>" TypeExpr "=" Expr
                         | ValueName ParameterList ":" TypeExpr ":>" TypeExpr "=" Expr
     syntax LetBindingList ::= LetBinding | LetBinding "and" LetBindingList
 
     syntax PatternMatch ::= Pattern "when" Expr "->" Expr
-                          | Pattern "->" Expr
+                          | Pattern "->" Expr [klabel('patternMatchExpr)]
     syntax PatternMatchs ::= PatternMatch | PatternMatch "|" PatternMatchs
     syntax PatternMatching ::= "|" PatternMatchs | PatternMatchs
     syntax MultipleMatching ::= Parameter ParameterList "->" Expr      [klabel('parameterListExpr)]
