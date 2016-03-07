@@ -1,7 +1,7 @@
 module OCAML-ABSTRACT-SYNTAX
 imports  OCAML-SYNTAX
-    syntax O ::= Loc(K, K) // LocInfo, K
-    syntax O ::= LocInfo(Int, Int) // start, stop
+    syntax O ::= Location(K, K) // LocationInfo, K
+    syntax O ::= LocationInfo(Int, Int) // start, stop
 
     syntax LId ::= IdLid(AllOps)
     syntax UId ::= IdUid(String)
@@ -9,16 +9,17 @@ imports  OCAML-SYNTAX
     syntax Id ::= LId | UId
     syntax O ::= Id
 
-    syntax O ::= PaId(ValueName)
-    syntax O ::= PaId(Id)
-    syntax O ::= PaInt(Int)
-    syntax O ::= "PaAny"
+    syntax O ::= PatternIdentifier(Id)
+    syntax O ::= PatternInteger(Int)
+    syntax O ::= "Wildcard"
     syntax O ::= PaAli(K, K)
     syntax O ::= PaTyc(K, K)
     syntax O ::= PaTup(K)
     syntax O ::= PaCom(K, K)
     syntax O ::= PaOrp(K, K)
     syntax O ::= PaApp(K, K)
+    syntax O ::= PatternLabel(Id)
+    syntax O ::= PatternOptionalLabel(Id)
 
     syntax O ::= McOr(K, K)
     syntax O ::= McArr(K, K, K) [strict(1)]
@@ -26,14 +27,16 @@ imports  OCAML-SYNTAX
     syntax O ::= BinaryAnd(K,K) [seqstrict]
     syntax O ::= BinaryOr(K,K) [seqstrict]
 
-    syntax O ::= BiAnd(K, K) [strict]
-    syntax O ::= BiEq(K, K) // pat = v
+    syntax O ::= BindingAnd(K, K) [strict]
+    syntax O ::= BindingEquality(K, K) // pat = v
 
     syntax O ::= RbEq(K, K) [strict(2), hybrid] // x = v
     syntax O ::= RbSem(K, K) [strict, superheat, hybrid]
 
     syntax O ::= "ExNil"
     syntax O ::= ExId(Id) // id
+    syntax O ::= ExprLabelId(Id, K) [strict(2)]
+    syntax O ::= ExprOptLabelId(Id, K) [strict(2)]
     syntax O ::= ExBool(Bool)
     syntax O ::= ExInt(Int)
     syntax O ::= ExFloat(Float)

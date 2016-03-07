@@ -132,7 +132,7 @@ module OCAML-SYNTAX
 
     //define patterns
     syntax Pattern ::= ValueName
-		| "_"  [onlyLabel, klabel('paAny)]
+		| "_"  [onlyLabel, klabel('wildcard)]
 		| Constant
 		| "(" Pattern ")"                    [bracket]
                 > CharLiteral ".." CharLiteral       [left]
@@ -221,10 +221,11 @@ module OCAML-SYNTAX
     syntax ExprList ::= Expr
                       | Expr ";" ExprList
 
-    syntax LabelName ::= "~" LowerCaseName | "?" LowerCaseName
+    syntax LabelName ::= "~" LowerCaseName [klabel('tlabel)]
+                        | "?" LowerCaseName [klabel('optionalLabel)]
 
     syntax Argument ::= Expr | LabelName
-                      | LabelName ":" Expr
+                      | LabelName ":" Expr [klabel('label)]
 
     syntax ArgumentList ::= Argument | Argument ArgumentList
     syntax AllowArrowExpr ::= LowerCaseName
@@ -250,9 +251,9 @@ module OCAML-SYNTAX
 
     syntax ParameterList ::= List{Parameter,""}
     syntax Parameter ::= Pattern | LabelName | LabelName ":" Pattern
-                       | "~" "(" LowerCaseName ")"
+                       | "~" "(" LowerCaseName ")"[klabel('parenthesisLabel)]
                        | "~" "(" LowerCaseName ":" TypeExpr ")"
-                       | "?" "(" LowerCaseName ")"
+                       | "?" "(" LowerCaseName ")" [klabel('parenthesisOptionalLabel)]
                        | "?" "(" LowerCaseName ":" TypeExpr ")"
                        | "?" "(" LowerCaseName "=" Expr ")"
                        | "?" "(" LowerCaseName ":" TypeExpr "=" Expr ")"
