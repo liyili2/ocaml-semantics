@@ -258,7 +258,9 @@ module OCAML-SYNTAX
                        | "?" "(" LowerCaseName "=" Expr ")"
                        | "?" "(" LowerCaseName ":" TypeExpr "=" Expr ")"
                        | "?" LowerCaseName ":" "(" Pattern ")"
+                                                      [klabel('parameterLabelPattern)]
                        | "?" LowerCaseName ":" "(" Pattern ":" TypeExpr ")"
+                                                  [klabel('parameterLabelPatternType)]
                        | "?" LowerCaseName ":" "(" Pattern "=" Expr ")"
                        | "?" LowerCaseName ":" "(" Pattern ":" TypeExpr "=" Expr ")"
 

@@ -66,7 +66,9 @@ imports  OCAML-SYNTAX
 
     // option types are sometimes used in the AST
     // TODO maybe we should fix this?
-    syntax O ::= "None"
+    syntax O ::= "none"
+
+    syntax O ::= labelPattern(K, Bool, K, K, K) //name, initial yet, pattern, type, default value.
 
     syntax ListFactor ::= funFactor(O,O)
     syntax FunList ::= List{ListFactor,","}

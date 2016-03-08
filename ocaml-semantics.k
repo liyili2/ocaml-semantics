@@ -35,6 +35,7 @@ module OCAML-TRANS
     
     syntax KItem ::= translation(ModuleItemListFactor)   [function] 
     syntax KItem ::= translationParam(Parameter) [function] 
+    syntax KItem ::= translationTypeExpr(TypeExpr) [function] 
     syntax KItem ::= translationApp(K, ArgumentList) [function]
     syntax KItem ::= translationArg(Argument) [function]
     syntax KItem ::= translationPattern(Pattern) [function]
@@ -47,15 +48,83 @@ module OCAML-TRANS
 
  syntax KItem ::= "assign" "(" K ")"
 
- rule translation(I:IntegerLiteral) => ExInt(String2Int(#tokenToString(I)))
-  rule translation(F:FloatLiteral) => ExFloat(String2Float(#tokenToString(F)))
-   rule translation(B:Bool) => ExBool(B)
+    rule translation(I:IntegerLiteral) => ExInt(String2Int(#tokenToString(I)))
+    rule translation(F:FloatLiteral) => ExFloat(String2Float(#tokenToString(F)))
+    rule translation(B:Bool) => ExBool(B)
    //rule translation('label(L:LabelName,, E:Expr)) => translation()
-   rule translation('label('tlabel(L:LowerCaseName),, E:Expr)) => ExprLabelId(String2Id(#tokenToString(L)), E)
-   rule translation('label('optionalLabel(L:LowerCaseName),, E:Expr)) => ExprOptLabelId(String2Id(#tokenToString(L)), E)
 
- rule translation(I:LowerCaseName) => ExId(String2Id(#tokenToString(I)))
- rule translation((O:ImportantOps)) => ExId(IdLid(O))
+    //I think these two labels can be put into only one kind of labels.
+    rule translation('label('tlabel(L:LowerCaseName),, E:Expr))
+                               => ExprLabelId(String2Id(#tokenToString(L)), translation(E))
+    rule translation('label('optionalLabel(L:LowerCaseName),, E:Expr))
+                               => ExprLabelId(String2Id(#tokenToString(L)), translation(E))
+
+
+    rule translation(I:LowerCaseName) => ExId(String2Id(#tokenToString(I)))
+    rule translation((O:ImportantOps)) => ExId(IdLid(O))
+
+    rule translationParam(X:ValueName)
+                              => PatternIdentifier(String2Id(#tokenToString(X))) 
+    rule translationPattern(X:ValueName)
+                              => PatternIdentifier(String2Id(#tokenToString(X))) 
+    rule translationPattern(I:IntegerLiteral)
+                              => PatternInteger(String2Int(#tokenToString(I)))
+    //rule translationPattern('wildcard ) => Wildcard
+
+    rule translationPattern('patternList(P:Pattern,, Ps:Pattern))
+                           => PaOrp(translationPattern(P), translationPattern(Ps)) 
+    rule translationParam(~ X:LowerCaseName)
+                           => labelPattern(String2Id(#tokenToString(X)),
+                                           false, none, none, none)
+    rule translationParam('parenthesisLabel(X:LowerCaseName))
+                           => labelPattern(String2Id(#tokenToString(X)),
+                                           false, none, none, none)
+    rule translationParam(? X:LowerCaseName)
+                           => labelPattern(String2Id(#tokenToString(X)),
+                                           false, none, none, none)
+    rule translationParam('parenthesisOptionalLabel(X:LowerCaseName))
+                           => labelPattern(String2Id(#tokenToString(X)),
+                                           false, none, none, none)
+    rule translationParam(~ X:LowerCaseName : P:Pattern)
+                           => labelPattern(String2Id(#tokenToString(X)),
+                                           false,translationPattern(P), none, none)
+    rule translationParam(? X:LowerCaseName : P:Pattern)
+                           => labelPattern(String2Id(#tokenToString(X)),
+                                           false,translationPattern(P), none, none)
+    rule translationParam(~ (X:LowerCaseName : T:TypeExpr))
+                           => labelPattern(String2Id(#tokenToString(X)),
+                                           false, none, translationTypeExpr(T), none)
+    rule translationParam(? (X:LowerCaseName : T:TypeExpr))
+                           => labelPattern(String2Id(#tokenToString(X)),
+                                           false, none, translationTypeExpr(T), none)
+    rule translationParam(? (X:LowerCaseName = E:Expr))
+                           => labelPattern(String2Id(#tokenToString(X)),
+                                           false, none, none, translation(E))
+    rule translationParam(? (X:LowerCaseName : T:TypeExpr = E:Expr))
+                           => labelPattern(String2Id(#tokenToString(X)),
+                                           false, none, translationTypeExpr(T), translation(E))
+    rule translationParam('parameterLabelPattern(X:LowerCaseName,, P:Pattern))
+                           => labelPattern(String2Id(#tokenToString(X)),
+                                           false,translationPattern(P) ,none ,none)
+    rule translationParam('parameterLabelPatternType(X:LowerCaseName,,
+                                                           P:Pattern,, T:TypeExpr))
+                           => labelPattern(String2Id(#tokenToString(X)),
+                                           false, translationPattern(P), translationTypeExpr(T), none)
+    rule translationParam(? X:LowerCaseName : (P:Pattern = E:Expr))
+                           => labelPattern(String2Id(#tokenToString(X)),
+                                           false, translationPattern(P), none, translation(E))
+    rule translationParam(? X:LowerCaseName : (P:Pattern : T:TypeExpr = E:Expr))
+                           => labelPattern(String2Id(#tokenToString(X)),
+                                           false, translationPattern(P)
+                                                     ,translationTypeExpr(T), translation(E))
+/*
+    rule translationParam(~ L:LowerCaseName)
+                           => PatternLabel(String2Id(#tokenToString(L)))
+    rule translationParam(? L:LowerCaseName)
+                           => PatternOptionalLabel(String2Id(#tokenToString(L)))
+*/
+
+
 
 //Binary Integer Operator Expressions
  rule translation('mathTimesOp(E1:Expr,, Bin:MathOp ,, E2:Expr)) => ExApp(ExApp(ExId(IdLid(Bin)), translation(E1)),translation(E2)) 
@@ -119,15 +188,7 @@ rule BinaryAnd(true, true) => ExBool(true)
 rule BinaryAnd(false, _) => ExBool(false)
 rule BinaryAnd(true, false) => ExBool(false)
 
-rule translationParam(X:ValueName) => PatternIdentifier(String2Id(#tokenToString(X))) 
-rule translationPattern(X:ValueName) => PatternIdentifier(String2Id(#tokenToString(X))) 
-rule translationPattern(I:IntegerLiteral) => PatternInteger(String2Int(#tokenToString(I)))
-//rule translationPattern('wildcard ) => Wildcard
-rule translationPattern('patternList(P:Pattern,, Ps:Pattern)) => PaOrp(translationPattern(P), translationPattern(Ps)) 
-rule translationParam('parenthesisLabel(L:LowerCaseName)) => PatternLabel(String2Id(#tokenToString(L)))
-rule translationParam('parenthesisOptionalLabel(L:LowerCaseName)) => PatternOptionalLabel(String2Id(#tokenToString(L)))
-rule translationParam(~ L:LowerCaseName) => PatternLabel(String2Id(#tokenToString(L)))
-rule translationParam(? L:LowerCaseName) => PatternOptionalLabel(String2Id(#tokenToString(L)))
+
 
 endmodule
 
