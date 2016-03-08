@@ -8,7 +8,7 @@ module OCAML-SYNTAX-EXTRAS
 
     syntax KResult ::= Int | Bool | Id 
 
-   // syntax KResult ::= "ExprLabelId" "(" Id ")" | "ExprOptLabelId" "(" Id ")"
+    syntax KResult ::= "EvalExprLabelId" "(" Id "," K ")" | "EvalExprOptLabelId" "(" Id "," K ")"
 
     syntax KItem
       ::= "initEnv"
@@ -57,7 +57,7 @@ module OCAML-TRANS
     rule translation('label('tlabel(L:LowerCaseName),, E:Expr))
                                => ExprLabelId(String2Id(#tokenToString(L)), translation(E))
     rule translation('label('optionalLabel(L:LowerCaseName),, E:Expr))
-                               => ExprLabelId(String2Id(#tokenToString(L)), translation(E))
+                               => ExprOptLabelId(String2Id(#tokenToString(L)), translation(E))
 
 
     rule translation(I:LowerCaseName) => ExId(String2Id(#tokenToString(I)))
@@ -449,6 +449,7 @@ module OCAML-FUNCTIONS
     rule apply(UId:UId, VS:ElemList) => cons(UId, VS)
 
     syntax KResult ::= "closure" "(" Map "," K ")"
+    syntax KItem ::= "reduceClosure" "(" Map "," K ")"
 
     //context apply(closure(_, _), _:KList,, HOLE,, _:KList)
 
@@ -467,13 +468,30 @@ module OCAML-FUNCTIONS
     rule closure(_, K:KResult) => K
 
 
-syntax KItem ::= "matchLabel" "(" K ","  Id "," K ")" [function]
+syntax KItem ::= "matchLabel" "(" K ","  Id "," K ")" 
+                | "matched" "(" K ")"
+    
+  //  rule <k> labelPattern()
 
-    rule <k> apply(closure(Env':Map, Matching:K), ExprLabelId(L:Id, C:KResult)) => matchLabel(Matching, L, C) ~> closure(Env':Map, HOLE) ~> env(Env) ... </k>
+    rule <k> apply(closure(Env':Map, Matching:K), ExprLabelId(L:Id, C:KResult)) => matchLabel(Matching, L, C) 
+    ~> closure(Env':Map /*+ MapItem(L |-> C)*/, Matching) ~> env(Env) ... </k>
     <env> Env => Env' </env>
 
-    rule matchLabel(McArr(PatternLabel(L:Id), _ , E1:K), L, E2:K) => E1[E2 / L]
-    rule matchLabel(McArr(PatternLabel(P:Id), S:K , E1:K), L, E2:K) => matchLabel(E1, L, E2) ~> McArr(PatternLabel(P), S, HOLE) when P =/=K L
+    rule matchLabel(McArr(labelPattern(L:Id, false, Pattern:K, Type:K, Default:K), S:K , E1:K), L, E2:K) => matched(McArr(labelPattern(L, true, Pattern, Type, Default), S, E1))
+    rule matchLabel(McArr(labelPattern(P:Id, false, Pattern:K, Type:K, Default:K), S:K , E1:K), L:Id, E2:K) => matchLabel(E1, L, E2) 
+    ~> matchLabel(McArr(labelPattern(P:Id, false, Pattern:K, Type:K, Default:K), S, E1), L, E2) when P =/=K L
+
+    rule matched(MC:K) ~> matchlabel(McArr(P:K, S:K, E1:K), L:Id, E2:K) => matched(McArr(P, S, MC))
+    rule (matched(MC:K) ~> closure(Env':Map , _)) => reduceClosure(Env', MC)
+
+    rule reduceClosure(Env, McArr(labelPattern(L:Id, true, _, _, _), S:K, E1:K))=> reduceClosure(Env, E1)
+    rule reduceClosure(Env, V:KResult) => V
+
+    rule reduceClosure(Env, McArr(labelPattern(L:Id, false, Pattern:K, Type:K, Default:K), S:K, E1:K)) => 
+    closure(Env, McArr(labelPattern(L:Id, false, Pattern:K, Type:K, Default:K), S:K, E1:K))
+
+    rule reduceClosure(Env, McArr(P:K, S:K, E1:K)) => 
+    closure(Env, McArr(P, S:K, E1:K))   //where P =/= labelPattern
 
     rule
         <k> apply(closure(Env':Map, MC:K), V:KResult, Args:ElemList) => apply(ExMat(V, MC), Args) ~> env(Env) ...</k>

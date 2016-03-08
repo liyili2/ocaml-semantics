@@ -68,7 +68,7 @@ imports  OCAML-SYNTAX
     // TODO maybe we should fix this?
     syntax O ::= "none"
 
-    syntax O ::= labelPattern(K, Bool, K, K, K) //name, initial yet, pattern, type, default value.
+    syntax O ::= labelPattern(Id, Bool, K, K, K) //name, initial yet, pattern, type, default value.
 
     syntax ListFactor ::= funFactor(O,O)
     syntax FunList ::= List{ListFactor,","}
