@@ -9,7 +9,7 @@ imports  OCAML-SYNTAX
     syntax Id ::= LId | UId
     syntax O ::= Id
 
-    syntax O ::= PatternIdentifier(Id)
+    syntax O ::= PatternIdentifier(K)
     syntax O ::= PatternInteger(Int)
     syntax O ::= "Wildcard"
     syntax O ::= PaAli(K, K)
@@ -20,6 +20,15 @@ imports  OCAML-SYNTAX
     syntax O ::= PaApp(K, K)
     syntax O ::= PatternLabel(Id)
     syntax O ::= PatternOptionalLabel(Id)
+    syntax O ::= PatternConst(K)
+    syntax O ::= PatternDoubleChar(K, K)
+    syntax O ::= PatternLazy(K)
+    syntax O ::= PatternTag(K, K)
+    syntax O ::= PaConstType(K)
+    syntax O ::= PaList(K, K)
+    syntax O ::= PaTuple(K, K)
+    syntax O ::= PaRecord(K)
+    syntax O ::= FieldPattern(K, K)
 
     syntax O ::= McOr(K, K)
     syntax O ::= McArr(K, K, K) [strict(1)]

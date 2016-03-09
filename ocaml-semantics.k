@@ -39,6 +39,8 @@ module OCAML-TRANS
     syntax KItem ::= translationApp(K, ArgumentList) [function]
     syntax KItem ::= translationArg(Argument) [function]
     syntax KItem ::= translationPattern(Pattern) [function]
+    syntax KItem ::= translationPatternList(PatternList) [function]
+    syntax KItem ::= translationPatternFieldList(FieldPatternList) [function]
     syntax KItem ::= translationParams(ParameterList, Expr) [function] 
     syntax KItem ::= translationLetBindings(LetBindingList) [function]
     syntax KItem ::= translationLetBinding(LetBinding) [function]
@@ -60,19 +62,55 @@ module OCAML-TRANS
                                => ExprOptLabelId(String2Id(#tokenToString(L)), translation(E))
 
 
+    rule translationPattern(X:ValueName)
+                              => PatternIdentifier(String2Id(#tokenToString(X))) 
+    rule translationPattern(I:IntegerLiteral)
+                              => PatternInteger(String2Int(#tokenToString(I)))
+    rule translationPattern(I:Constant)
+                              => PatternConst(I)
+    rule translationPattern(C1:CharLiteral .. C2:CharLiteral)
+                              => PatternDoubleChar(C1, C2)
+    rule translationPattern('patternList(P:Pattern,, Ps:Pattern))
+                           => PaOrp(translationPattern(P), translationPattern(Ps)) 
+    rule translationPattern(lazy P:Pattern)
+                              => PatternLazy(translationPattern(P))
+    rule translationPattern( ( P:Pattern : T:TypeExpr ) )
+                              => PaTyc(translationPattern(P), translationTypeExpr(T))
+    rule translationPattern('patternWithConstr(C:Constr, P:Pattern))
+                              => PaCom(C, translationPattern(P))
+    rule translationPattern(` C:CapitalizedName P:Pattern)
+                              => PatternTag(C, translationPattern(P))
+    rule translationPattern(# Tc:TypeConstr)
+                              => PatternIdentifier(Tc)
+    rule translationPattern(P1:Pattern :: P2:Pattern)
+                              => PaList(translationPattern(P1), translationPattern(P2))
+    rule translationPattern(P1:Pattern , P2:Pattern)
+                              => PaTuple(translationPattern(P1), translationPattern(P2))
+    rule translationPattern(P1:Pattern as V:ValueName)
+                              => PaAli(translationPattern(P1), translationPattern(V))
+    rule translationPattern('patternAsList(Ps:PatternList))
+                              => translationPatternList(Ps)
+    rule translationPattern('patternAsRecord(Ps:PatternList))
+                              => PaRecord(translationPatternList(Ps))
+    rule translationPattern('patternAsField(Ps:FieldPatternList))
+                              => PaRecord(translationPatternFieldList(Ps))
+
+    rule translationPatternList(P1:Pattern) => translationPattern(P1)
+    rule translationPatternList(P1:Pattern ; Ps:PatternList)
+                                   => PaList(translationPattern(P1), translationPatternList(Ps))
+    rule translationPatternFieldList(F:Field = P:Pattern)
+                                   => FieldPattern(F, translationPattern(P))
+    rule translationPatternFieldList(F:Field = P:Pattern ; Fps:FieldPatternList)
+                                   => PaList(FieldPattern(F, translationPattern(P)),
+                                               translationPatternFieldList(Fps))
+
+
     rule translation(I:LowerCaseName) => ExId(String2Id(#tokenToString(I)))
     rule translation((O:ImportantOps)) => ExId(IdLid(O))
 
     rule translationParam(X:ValueName)
                               => PatternIdentifier(String2Id(#tokenToString(X))) 
-    rule translationPattern(X:ValueName)
-                              => PatternIdentifier(String2Id(#tokenToString(X))) 
-    rule translationPattern(I:IntegerLiteral)
-                              => PatternInteger(String2Int(#tokenToString(I)))
-    //rule translationPattern('wildcard ) => Wildcard
 
-    rule translationPattern('patternList(P:Pattern,, Ps:Pattern))
-                           => PaOrp(translationPattern(P), translationPattern(Ps)) 
     rule translationParam(~ X:LowerCaseName)
                            => labelPattern(String2Id(#tokenToString(X)),
                                            false, none, none, none)
@@ -468,7 +506,7 @@ module OCAML-FUNCTIONS
     rule closure(_, K:KResult) => K
 
 
-syntax KItem ::= "matchLabel" "(" K ","  Id "," K ")" 
+syntax KItem ::= matchLabel(K, K, K) 
                 | "matched" "(" K ")"
     
   //  rule <k> labelPattern()
@@ -481,9 +519,9 @@ syntax KItem ::= "matchLabel" "(" K ","  Id "," K ")"
     rule matchLabel(McArr(labelPattern(P:Id, false, Pattern:K, Type:K, Default:K), S:K , E1:K), L:Id, E2:K) => matchLabel(E1, L, E2) 
     ~> matchLabel(McArr(labelPattern(P:Id, false, Pattern:K, Type:K, Default:K), S, E1), L, E2) when P =/=K L
 
-    rule matched(MC:K) ~> matchlabel(McArr(P:K, S:K, E1:K), L:Id, E2:K) => matched(McArr(P, S, MC))
-    rule (matched(MC:K) ~> closure(Env':Map , _)) => reduceClosure(Env', MC)
+    rule (matched(MC:K) ~> matchLabel(McArr(P:K, S:K, E1:K), L:Id, E2:K)) => matched(McArr(P, S, MC))
 
+    rule (matched(MC:K) ~> closure(Env':Map , _)) => reduceClosure(Env', MC)
     rule reduceClosure(Env, McArr(labelPattern(L:Id, true, _, _, _), S:K, E1:K))=> reduceClosure(Env, E1)
     rule reduceClosure(Env, V:KResult) => V
 
@@ -518,7 +556,7 @@ module OCAML-EXCEPTIONS
         <xstack> K:K => . ...</xstack>
 
     rule
-        <k> '%raise(V:KResult) ~> _ => ExMat(V, McOr(MC, McArr(Wildcard, ExNil, 'primRaise(V)))) ~> K </k>
+        <k> '%raise(V:KResult) ~> _ => ExMat(V, McOr(MC, McArr('wildcard(.KList), ExNil, 'primRaise(V)))) ~> K </k>
         <xstack> xex(K:K, MC:K, Env:Map) => . ...</xstack>
         <env> _ => Env </env>
 
@@ -601,7 +639,7 @@ module OCAML-PATTERNS
         <patterns> (PatternIdentifier(X:Id) <- K:K) => .K ...</patterns>
         <subst>... .Map => X |-> K ...</subst>
 
-    rule Wildcard <- K:K => .K [anywhere] //wildcard. 
+    rule 'wildcard(.KList) <- K:K => .K [anywhere] //wildcard. 
 
 //    rule PatternIdentifier(UId:UId) <- UId => .K [anywhere]
 
@@ -661,7 +699,7 @@ module OCAML-PATTERNS
     rule matches _ PatternIdentifier(LId:LId) => true
     rule matches UId:UId PatternIdentifier(UId) => true
     rule matches unit PatternIdentifier(IdUid("()")) => true
-    rule matches _ Wildcard => true
+    rule matches _ 'wildcard(.KList) => true
     rule matches _ PaAli(_, _) => true
     rule matches _ PaTyc(_, _) => true
     rule matches _ PaOrp(_, _) => true
