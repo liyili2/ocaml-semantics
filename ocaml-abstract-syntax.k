@@ -44,8 +44,8 @@ imports  OCAML-SYNTAX
 
     syntax O ::= "ExNil"
     syntax O ::= ExId(Id) // id
-    syntax O ::= ExprLabelId(Id, K) [strict(2)]
-    syntax O ::= ExprOptLabelId(Id, K) [strict(2)]
+    syntax O ::= ExprLabelId(Id, K) [strict(2)] // name , value
+    syntax O ::= ExprOptLabelId(Id, K) [strict(2)]// name , value
     syntax O ::= ExBool(Bool)
     syntax O ::= ExInt(Int)
     syntax O ::= ExFloat(Float)

@@ -8,7 +8,9 @@ module OCAML-SYNTAX-EXTRAS
 
     syntax KResult ::= Int | Bool | Id 
 
-    syntax KResult ::= "EvalExprLabelId" "(" Id "," K ")" | "EvalExprOptLabelId" "(" Id "," K ")"
+    
+
+    syntax KResult ::= ExComValue(K,K)
 
     syntax KItem
       ::= "initEnv"
@@ -61,7 +63,7 @@ module OCAML-TRANS
     rule translation('label('optionalLabel(L:LowerCaseName),, E:Expr))
                                => ExprOptLabelId(String2Id(#tokenToString(L)), translation(E))
 
-
+    //Translation Patterns
     rule translationPattern(X:ValueName)
                               => PatternIdentifier(String2Id(#tokenToString(X))) 
     rule translationPattern(I:IntegerLiteral)
@@ -108,6 +110,7 @@ module OCAML-TRANS
     rule translation(I:LowerCaseName) => ExId(String2Id(#tokenToString(I)))
     rule translation((O:ImportantOps)) => ExId(IdLid(O))
 
+    //Translation Parameters
     rule translationParam(X:ValueName)
                               => PatternIdentifier(String2Id(#tokenToString(X))) 
 
@@ -155,12 +158,40 @@ module OCAML-TRANS
                            => labelPattern(String2Id(#tokenToString(X)),
                                            false, translationPattern(P)
                                                      ,translationTypeExpr(T), translation(E))
+
+    //Translation Arguments
+
+    rule translationArg(E:Expr) => translation(E)
+
+    rule translationArg(~ X:LowerCaseName)
+                           => ExprLabelId(String2Id(#tokenToString(X)),
+                                           ExNil)
+    rule translationArg(? X:LowerCaseName)
+                           => ExprOptLabelId(String2Id(#tokenToString(X)),
+                                           ExNil)
+  
+    rule translationArg(~ X:LowerCaseName : E:Expr)
+                           => ExprLabelId(String2Id(#tokenToString(X)),
+                                           translation(E))
+    rule translationArg(? X:LowerCaseName : E:Expr)
+                           => ExprOptLabelId(String2Id(#tokenToString(X)),
+                                           translation(E))
+
+
+ syntax KResult ::= "ExprLabelIdVal" "(" Id "," K ")" | "ExprOptLabelIdVal" "(" Id "," K ")"
+
+    rule ExprLabelId(X:Id, V:KResult) => ExprLabelIdVal(X:Id, V:KResult)
+    rule ExprOptLabelId(X:Id, V:KResult) => ExprOptLabelIdVal(X:Id, V:KResult)
+  
 /*
     rule translationParam(~ L:LowerCaseName)
                            => PatternLabel(String2Id(#tokenToString(L)))
     rule translationParam(? L:LowerCaseName)
                            => PatternOptionalLabel(String2Id(#tokenToString(L)))
 */
+
+
+
 
 
 
@@ -433,6 +464,10 @@ module OCAML-LET-LETREC
             => group(ExCom(Exp1, Exp2), PaCom(Pat1, Pat2))
         ...</k>
 
+
+
+    rule ExCom(V1:KResult, V2:KResult) => ExComValue(V1,V2)
+
     rule
         <k> group(Exp1:K, Pat:K) ~> letbody(Exp2:K) ~> K
             => ExMat(Exp1, McArr(Pat, ExNil, Exp2)) ~> K
@@ -503,6 +538,8 @@ module OCAML-FUNCTIONS
         <k> apply(closure(Env':Map, MC:K), V:KResult) => ExMat(V, MC) ~> env(Env) ...</k>
         <env> Env => Env' </env>
 
+        when V =/=K ExprLabelIdVal
+
     rule closure(_, K:KResult) => K
 
 
@@ -511,7 +548,7 @@ syntax KItem ::= matchLabel(K, K, K)
     
   //  rule <k> labelPattern()
 
-    rule <k> apply(closure(Env':Map, Matching:K), ExprLabelId(L:Id, C:KResult)) => matchLabel(Matching, L, C) 
+    rule <k> apply(closure(Env':Map, Matching:K), ExprLabelIdVal(L:Id, C:KResult)) => matchLabel(Matching, L, C) 
     ~> closure(Env':Map /*+ MapItem(L |-> C)*/, Matching) ~> env(Env) ... </k>
     <env> Env => Env' </env>
 
@@ -648,7 +685,7 @@ module OCAML-PATTERNS
     rule PaTup(Pat:K) <- ExTup(Exp:K) => Pat <- Exp [anywhere]
 
 
-    rule PaCom(Pat1:K, Pat2:K) <- ExCom(Exp1:K, Exp2:K) =>
+    rule PaCom(Pat1:K, Pat2:K) <- ExComValue(Exp1:K, Exp2:K) =>
                (Pat1 <- Exp1)
                ~> (Pat2 <- Exp2) [anywhere]
 
@@ -704,7 +741,7 @@ module OCAML-PATTERNS
     rule matches _ PaTyc(_, _) => true
     rule matches _ PaOrp(_, _) => true
     rule matches ExTup(_) PaTup(_) => true
-    rule matches ExCom(_, _) PaCom(_, _) => true
+    rule matches ExComValue(_, _) PaCom(_, _) => true
     rule matches I:Int PatternInteger(I) => true
     rule matches . . => true
     rule matches _ _ => false [owise]
