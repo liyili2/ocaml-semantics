@@ -99,7 +99,7 @@ module OCAML-SYNTAX
                       | "(" TypeExprList ")" ConsOp Field      [klabel('typeListFieldField)] 
                       > ArrowTypeExpr
                       | "?" LowerCaseName ":" ArrowTypeExpr
-                      | LowerCaseName ":" ArrowTypeExpr
+                      | LowerCaseName ":" ArrowTypeExpr        [klabel('labelAsType)]
                       > TypeExpr "as" Identifier
 
 
@@ -111,7 +111,7 @@ module OCAML-SYNTAX
                           | TypeExpr "," TypeExprList
     syntax PolyTypeExpr ::= TypeExpr | IdentifierQuoteList "." TypeExpr
     syntax IdentifierQuoteList ::= "'" Identifier | "'" Identifier IdentifierQuoteList
-    syntax MethodType ::= LowerCaseName ":" PolyTypeExpr
+    syntax MethodType ::= LowerCaseName ":" PolyTypeExpr       [klabel('labelAsPolyType)]
     syntax MethodTypeList ::= MethodType | MethodType ";" MethodTypeList
 
     //define polymorphic-variant-type

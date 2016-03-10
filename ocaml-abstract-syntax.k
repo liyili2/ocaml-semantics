@@ -69,7 +69,23 @@ imports  OCAML-SYNTAX
     syntax O ::= StSem(K, K) // st1 ;; st2
     syntax O ::= StExc(K, K) // exception
     syntax KItem ::= K "<-" K
+
+    //type constructs
     syntax O ::= TyId(K)
+    syntax O ::= TyConstr(K)
+    syntax O ::= TyWithArg(K, K)//type typeConstr
+    syntax O ::= TyList(K)//type typeConstr
+    syntax O ::= TyPair(K, K)//type typeConstr
+    syntax O ::= TyMethods(K, Bool)//typelist, hasExtention? 
+    syntax O ::= TyFieldType(K, K)//Field name, type
+    syntax O ::= TyFun(K, K, K)//label, type, type
+    syntax O ::= TyQuestionMark(K)//labelname
+    syntax O ::= TyTilter(K)//labelname
+    syntax O ::= TyWithName(K, K)//type, typename 
+    syntax O ::= TyListCons(K, K)
+    syntax O ::= TySingleMethod(K, K)//name, polytype
+    syntax O ::= TyMethodCons(K, K)
+    syntax O ::= TyQuantifier(K, K)
 
     syntax AllOps ::= Unit| ConsOp | ImportantOps 
 

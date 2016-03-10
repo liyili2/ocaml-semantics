@@ -38,6 +38,9 @@ module OCAML-TRANS
     syntax KItem ::= translation(ModuleItemListFactor)   [function] 
     syntax KItem ::= translationParam(Parameter) [function] 
     syntax KItem ::= translationTypeExpr(TypeExpr) [function] 
+    syntax KItem ::= translationTypeExprList(TypeExprList) [function]
+    syntax KItem ::= translationPolyType(PolyTypeExpr) [function]
+    syntax KItem ::= translationMethodTypeList(MethodTypeList) [function] 
     syntax KItem ::= translationApp(K, ArgumentList) [function]
     syntax KItem ::= translationArg(Argument) [function]
     syntax KItem ::= translationPattern(Pattern) [function]
@@ -190,10 +193,52 @@ module OCAML-TRANS
                            => PatternOptionalLabel(String2Id(#tokenToString(L)))
 */
 
+    rule translationTypeExpr(X:Identifier) => TyId(String2Id(#tokenToString(X)))
+    rule translationTypeExpr(C:TypeConstr) => TyConstr(C)
+    rule translationTypeExpr(E:TypeExpr C:TypeConstr)
+                            => TyWithArg(translationTypeExpr(E), C)
+    rule translationTypeExpr((El:TypeExprList) C:TypeConstr)
+                            => TyWithArg(TyList(translationTypeExprList(El)), C)
+    rule translationTypeExpr(E1:TypeExpr * E2:TypeExpr)
+                            => TyPair(translationTypeExpr(E1), translationTypeExpr(E2))
+    rule translationTypeExpr('methodTypeListAsType(Ml:MethodTypeList))
+                            => TyMethods(translationMethodTypeList(Ml), false)
+    rule translationTypeExpr(< .. >)
+                            => TyMethods(none, true)
+    rule translationTypeExpr(< >)
+                            => TyMethods(none, false)
+    rule translationTypeExpr(<Ml:MethodTypeList ; .. >)
+                            => TyMethods(translationMethodTypeList(Ml), true)
+    rule translationTypeExpr('onlyFieldType(C:ConsOp,, F:Field))
+                            => TyFieldType(F, none)
+    rule translationTypeExpr('typeFieldType(T:TypeExpr,, C:ConsOp,, F:Field))
+                            => TyFieldType(F, translationTypeExpr(T))
+    rule translationTypeExpr('typeListFieldField(Ts:TypeExprList,, C:ConsOp,, F:Field))
+                            => TyFieldType(F, TyList(translationTypeExprList(Ts)))
+    rule translationTypeExpr(T1:TypeExpr -> T2:TypeExpr)
+                          => TyFun(none, translationTypeExpr(T1), translationTypeExpr(T2))
+    rule translationTypeExpr(? A:LowerCaseName : T1:TypeExpr -> T2:TypeExpr)
+                          => TyFun(TyQuestionMark(String2Id(#tokenToString(A))),
+                                 translationTypeExpr(T1), translationTypeExpr(T2))
+    rule translationTypeExpr('labelAsType(A:LowerCaseName,, T1:TypeExpr -> T2:TypeExpr))
+                          => TyFun(TyTilter(String2Id(#tokenToString(A))),
+                                 translationTypeExpr(T1), translationTypeExpr(T2))
+    rule translationTypeExpr(T:TypeExpr as A:Identifier)
+                          => TyWithName(translationTypeExpr(T), translationTypeExpr(A))
 
+    rule translationTypeExprList(T:TypeExpr) => translationTypeExpr(T)
+    rule translationTypeExprList(T:TypeExpr, Ts:TypeExprList)
+                         => TyListCons(translationTypeExpr(T), translationTypeExprList(Ts))
 
+    rule translationMethodTypeList('labelAsPolyType(X:LowerCaseName,, P:PolyTypeExpr))
+                 => TySingleMethod(String2Id(#tokenToString(X)),translationPolyType(P))
+    rule translationMethodTypeList(X:LowerCaseName : P:PolyTypeExpr ; Ms:MethodTypeList)
+                 => TyMethodCons(TySingleMethod(String2Id(#tokenToString(X)),
+                        translationPolyType(P)), translationMethodTypeList(Ms))
 
-
+    rule translationPolyType(T:TypeExpr) => translationTypeExpr(T)
+    rule translationPolyType(As:IdentifierQuoteList . T:TypeExpr)
+                                          => TyQuantifier(As, translationTypeExpr(T))
 
 //Binary Integer Operator Expressions
  rule translation('mathTimesOp(E1:Expr,, Bin:MathOp ,, E2:Expr)) => ExApp(ExApp(ExId(IdLid(Bin)), translation(E1)),translation(E2)) 
@@ -538,7 +583,7 @@ module OCAML-FUNCTIONS
         <k> apply(closure(Env':Map, MC:K), V:KResult) => ExMat(V, MC) ~> env(Env) ...</k>
         <env> Env => Env' </env>
 
-        when V =/=K ExprLabelIdVal
+        when getKLabel(V) =/=KLabel 'ExprLabelIdVal
 
     rule closure(_, K:KResult) => K
 
