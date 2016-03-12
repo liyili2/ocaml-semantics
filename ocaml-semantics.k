@@ -25,7 +25,9 @@ module OCAML-SYNTAX-EXTRAS
 
     syntax KResult ::= cons(K, ElemList)
 
-    syntax KItem ::= env(Map)
+    syntax KItem ::= env(Map) 
+        | funlabel (K, KList, KList, K) [strict(1,2,3)]// non-labeled arg, tilde labeled args, optional args, Expr
+
 
 
 
@@ -34,6 +36,7 @@ endmodule
 module OCAML-TRANS
     imports OCAML-SYNTAX
     imports OCAML-ABSTRACT-SYNTAX
+    imports OCAML-SYNTAX-EXTRAS
     
     syntax KItem ::= translation(ModuleItemListFactor)   [function] 
     syntax KItem ::= translationParam(Parameter) [function] 
@@ -43,10 +46,12 @@ module OCAML-TRANS
     syntax KItem ::= translationMethodTypeList(MethodTypeList) [function] 
     syntax KItem ::= translationApp(K, ArgumentList) [function]
     syntax KItem ::= translationArg(Argument) [function]
+    syntax KItem ::= translationArgs(ArgumentList) [function]
     syntax KItem ::= translationPattern(Pattern) [function]
     syntax KItem ::= translationPatternList(PatternList) [function]
     syntax KItem ::= translationPatternFieldList(FieldPatternList) [function]
     syntax KItem ::= translationParams(ParameterList, Expr) [function] 
+    syntax KItem ::= translationParams(ParameterList, K, Expr) [function] 
     syntax KItem ::= translationLetBindings(LetBindingList) [function]
     syntax KItem ::= translationLetBinding(LetBinding) [function]
     syntax KItem ::= translationLetRecBindings(LetBindingList) [function]
@@ -118,47 +123,47 @@ module OCAML-TRANS
                               => PatternIdentifier(String2Id(#tokenToString(X))) 
 
     rule translationParam(~ X:LowerCaseName)
-                           => labelPattern(String2Id(#tokenToString(X)),
+                           => tildeLabelPattern(String2Id(#tokenToString(X)),
                                            false, none, none, none)
     rule translationParam('parenthesisLabel(X:LowerCaseName))
-                           => labelPattern(String2Id(#tokenToString(X)),
+                           => tildeLabelPattern(String2Id(#tokenToString(X)),
                                            false, none, none, none)
     rule translationParam(? X:LowerCaseName)
-                           => labelPattern(String2Id(#tokenToString(X)),
+                           => optionalLabelPattern(String2Id(#tokenToString(X)),
                                            false, none, none, none)
     rule translationParam('parenthesisOptionalLabel(X:LowerCaseName))
-                           => labelPattern(String2Id(#tokenToString(X)),
+                           => optionalLabelPattern(String2Id(#tokenToString(X)),
                                            false, none, none, none)
     rule translationParam(~ X:LowerCaseName : P:Pattern)
-                           => labelPattern(String2Id(#tokenToString(X)),
+                           => tildeLabelPattern(String2Id(#tokenToString(X)),
                                            false,translationPattern(P), none, none)
     rule translationParam(? X:LowerCaseName : P:Pattern)
-                           => labelPattern(String2Id(#tokenToString(X)),
+                           => optionalLabelPattern(String2Id(#tokenToString(X)),
                                            false,translationPattern(P), none, none)
     rule translationParam(~ (X:LowerCaseName : T:TypeExpr))
-                           => labelPattern(String2Id(#tokenToString(X)),
+                           => tildeLabelPattern(String2Id(#tokenToString(X)),
                                            false, none, translationTypeExpr(T), none)
     rule translationParam(? (X:LowerCaseName : T:TypeExpr))
-                           => labelPattern(String2Id(#tokenToString(X)),
+                           => optionalLabelPattern(String2Id(#tokenToString(X)),
                                            false, none, translationTypeExpr(T), none)
     rule translationParam(? (X:LowerCaseName = E:Expr))
-                           => labelPattern(String2Id(#tokenToString(X)),
+                           => optionalLabelPattern(String2Id(#tokenToString(X)),
                                            false, none, none, translation(E))
     rule translationParam(? (X:LowerCaseName : T:TypeExpr = E:Expr))
-                           => labelPattern(String2Id(#tokenToString(X)),
+                           => optionalLabelPattern(String2Id(#tokenToString(X)),
                                            false, none, translationTypeExpr(T), translation(E))
     rule translationParam('parameterLabelPattern(X:LowerCaseName,, P:Pattern))
-                           => labelPattern(String2Id(#tokenToString(X)),
+                           => tildeLabelPattern(String2Id(#tokenToString(X)),
                                            false,translationPattern(P) ,none ,none)
     rule translationParam('parameterLabelPatternType(X:LowerCaseName,,
                                                            P:Pattern,, T:TypeExpr))
-                           => labelPattern(String2Id(#tokenToString(X)),
+                           => tildeLabelPattern(String2Id(#tokenToString(X)),
                                            false, translationPattern(P), translationTypeExpr(T), none)
     rule translationParam(? X:LowerCaseName : (P:Pattern = E:Expr))
-                           => labelPattern(String2Id(#tokenToString(X)),
+                           => optionalLabelPattern(String2Id(#tokenToString(X)),
                                            false, translationPattern(P), none, translation(E))
     rule translationParam(? X:LowerCaseName : (P:Pattern : T:TypeExpr = E:Expr))
-                           => labelPattern(String2Id(#tokenToString(X)),
+                           => optionalLabelPattern(String2Id(#tokenToString(X)),
                                            false, translationPattern(P)
                                                      ,translationTypeExpr(T), translation(E))
 
@@ -193,7 +198,7 @@ module OCAML-TRANS
                            => PatternOptionalLabel(String2Id(#tokenToString(L)))
 */
 
-    rule translationTypeExpr(X:Identifier) => TyId(String2Id(#tokenToString(X)))
+   /* rule translationTypeExpr(X:Identifier) => TyId(String2Id(#tokenToString(X)))
     rule translationTypeExpr(C:TypeConstr) => TyConstr(C)
     rule translationTypeExpr(E:TypeExpr C:TypeConstr)
                             => TyWithArg(translationTypeExpr(E), C)
@@ -239,7 +244,7 @@ module OCAML-TRANS
     rule translationPolyType(T:TypeExpr) => translationTypeExpr(T)
     rule translationPolyType(As:IdentifierQuoteList . T:TypeExpr)
                                           => TyQuantifier(As, translationTypeExpr(T))
-
+*/
 //Binary Integer Operator Expressions
  rule translation('mathTimesOp(E1:Expr,, Bin:MathOp ,, E2:Expr)) => ExApp(ExApp(ExId(IdLid(Bin)), translation(E1)),translation(E2)) 
  rule translation('mathPlusOp(E1:Expr,, Bin:AllPlusAndMinus ,, E2:Expr)) => ExApp(ExApp(ExId(IdLid(Bin)), translation(E1)),translation(E2)) 
@@ -253,14 +258,56 @@ rule translation('unaryOp(Un:Not ,, E1:Expr)) => ExApp(ExId(IdLid(Un)),translati
 
 
 
-   rule translation(E1:Expr Args:ArgumentList) => translationApp(translation(E1),Args)
+   rule translation(E1:Expr Args:ArgumentList) => ExApp(translation(E), translationArgs(Args))
+   rule translationArgs(A:Argument Args: ArgumentList) => translationArg(A), translationArgs(Args) // List concatenation problem
+   rule translationArgs(.ArgumentList) => .KList
+
+
+
+/*translationApp(translation(E1),Args) // old app semantics
    rule translationApp(E1:K, Arg:Argument Args:ArgumentList)
                     => translationApp(ExApp(E1,translationArg(Arg)),Args)
    rule translationApp(E1:K, Arg:Argument)
                     => ExApp(E1,translationArg(Arg))
- 
+ */
+   syntax KItem ::= translationFun(KList, K) [function]
    rule translation(fun 'parameterListExpr(X:Parameter,, Xs:ParameterList,, E:Expr))
-                                  => ExFun(McArr(translationParam(X),ExNil,translationParams(Xs, E)))
+                            => translationParam(X) ~> translationParams(Xs, funlabel(ExNil, .KList, .KList,ExNil), E)
+
+   rule translationParams(X:Parameter Xs:ParameterList, funlabel(ExNil, TildeLabels:KList, OptionalLabels:KList, Rest:K), E:Expr)
+                            => translationParam(X) ~> translationParams(Xs:ParameterList, 
+                                                      funlabel(ExNil, TildeLabels:KList, OptionalLabels:KList, Rest:K), E:Expr) 
+/* What is the KCommand to Concatenate two KLists?
+   rule tildeLabelPattern(I:Id, B:Bool, P:K, T:K, DV:K) ~>  //name, initial yet, pattern, type, default value
+   translationParams(Xs:ParameterList, funlabel(ExNil, TildeLabels:KList, OptionalLabels:KList, Rest:K), E:Expr) 
+   => translationParams(Xs:ParameterList, funlabel(ExNil, tildeLabelPattern(I:Id, B:Bool, P:K, T:K, DV:K) TildeLabels:KList, OptionalLabels:KList, Rest:K), E:Expr) 
+
+   rule optionalLabelPattern(I:Id, B:Bool, P:K, T:K, DV:K) ~>  //name, initial yet, pattern, type, default value
+   translationParams(Xs:ParameterList, funlabel(ExNil, TildeLabels:KList, OptionalLabels:KList, Rest:K), E:Expr) 
+   => translationParams(Xs:ParameterList, funlabel(ExNil, TildeLabels:KList, optionalLabelPattern(I:Id, B:Bool, P:K, T:K, DV:K) OptionalLabels:KList, Rest:K), E:Expr) 
+
+   rule Pattern:K ~> //name, initial yet, pattern, type, default value // nested translations allowed? 
+   // How can I restrict this rule to apply only when tildeLabelPattern and optionalLabelPattern don't match?
+   translationParams(Xs:ParameterList, funlabel(ExNil, TildeLabels:KList, OptionalLabels:KList, Rest:K), E:Expr) 
+   => translationFun(funlabel(Pattern, TildeLabels:KList, OptionalLabels:KList, Rest:K), translationParams(Xs:ParameterList, funlabel(ExNil, .KList, .KList, Rest:K), E:Expr)) 
+*/
+
+
+   rule translationParams(.ParameterList, funlabel(NArg:K, TildeLabels:KList, OptionalLabels:KList, Rest:K), E:Expr)
+                                => translationFun(funlabel(NArg:K, TildeLabels:KList, OptionalLabels:KList, Rest:K), translation(E)) // Will nested translations be a problem?
+
+
+  /* What is the KCommand to Cons two KLists?
+   rule translationFun(funlabel(NArg1:K, T1:KList, O1:KList, R1:K), funlabel(NArg2:K, T2:KList, O2:KList, R2:K)) 
+   => funlabel(NArg1, T1 T2, O1,funlabel(NArg2:K, T2:KList, O2:KList, R2:K))
+
+   //otherwise
+   rule translationFun(funlabel(NArg1:K, T1:KList, O1:KList, R1:K), E:K) => funlabel(NArg1:K, T1:KList, O1:KList, E)
+
+   */
+
+
+                            //      => ExFun(McArr(translationParam(X),ExNil,translationParams(Xs, E)))
 
    rule translationParams(X:Parameter Xs:ParameterList, E:Expr)
                                   => ExFun(McArr(translationParam(X), ExNil, translationParams(Xs, E)))
@@ -358,11 +405,14 @@ module OCAML-APPLICATION
     imports OCAML-SYNTAX
     imports OCAML-ABSTRACT-SYNTAX
 
-    syntax KItem ::= apply(K, K) [strict]
+    syntax KItem ::= apply(K, KList) [strict]
+    syntax KItem ::= apply(Map, K, KList) [strict]
+
     //syntax KItem ::= dealWithExternal(K) [strict]
     syntax KItem ::= flattenApp(K, ElemList)
 
-    rule ExApp(K1:K, K2:K) => apply(K1,val(K2))
+ //   rule ExApp(K1:K, K2:KList) => apply(K1,val(K2)) // what does val do?
+ rule ExApp(K1:K, K2:KList) => apply(K1,K2)
 /*
     rule flattenApp(ExApp(K:K, Arg:K), Args:ElemList) => flattenApp(K, val(Arg), Args)
     rule flattenApp(PaApp(K:K, Arg:K), Args:ElemList) => flattenApp(K, val(Arg), Args)
@@ -395,7 +445,7 @@ module OCAML-EXTERNAL
 
     //context apply(externalClosure(_:External, _, _), _:KList,, HOLE,, _:KList) [superheat]
 
-    rule
+/*    rule
         apply(externalClosure(Op:K, Arity:Int, Args:ElemList), NewArgs:KResult)
         => externalClosure(Op, Arity -Int 1, combineElemList(Args, valValue(NewArgs)))
         when Arity >Int 1
@@ -403,7 +453,7 @@ module OCAML-EXTERNAL
     rule apply(externalClosure(Op:K, Arity:Int, Args:ElemList), NewArgs:KResult)
         => getKLabel(Op)(toKList(combineElemList(Args, valValue(NewArgs))))
         when Arity ==Int 1
-
+*/
 endmodule
 
 module OCAML-INCLUDE
@@ -567,24 +617,28 @@ module OCAML-FUNCTIONS
     rule apply(UId:UId, VS:ElemList) => cons(UId, VS)
 
     syntax KResult ::= "closure" "(" Map "," K ")"
+    syntax KResult ::= closure(Map, K, KList, Klist, K)
     syntax KItem ::= "reduceClosure" "(" Map "," K ")"
-
+    syntax KResult
+                    
     //context apply(closure(_, _), _:KList,, HOLE,, _:KList)
 
    rule
         <k> ExFun(MC:K) => closure(Env, MC) ...</k>
         <env> Env:Map </env> 
 
-   //rule <k> ExFun() 
+   rule <k> funlabel(NArg1:K, T1:KList, O1:KList, R1:K) => closure(Env, NArgs1, T1, O1, R1)  ... </k>
+        <env> Env:Map </env>   
 
 
 
-    rule
+
+  /*  rule
         <k> apply(closure(Env':Map, MC:K), V:KResult) => ExMat(V, MC) ~> env(Env) ...</k>
         <env> Env => Env' </env>
 
         when getKLabel(V) =/=KLabel 'ExprLabelIdVal
-
+*/
     rule closure(_, K:KResult) => K
 
 
@@ -593,11 +647,11 @@ syntax KItem ::= matchLabel(K, K, K)
     
   //  rule <k> labelPattern()
 
-    rule <k> apply(closure(Env':Map, Matching:K), ExprLabelIdVal(L:Id, C:KResult)) => matchLabel(Matching, L, C) 
+   /* rule <k> apply(closure(Env':Map, Matching:K), ExprLabelIdVal(L:Id, C:KResult)) => matchLabel(Matching, L, C) 
     ~> closure(Env':Map /*+ MapItem(L |-> C)*/, Matching) ~> env(Env) ... </k>
     <env> Env => Env' </env>
-
-    rule matchLabel(McArr(labelPattern(L:Id, false, Pattern:K, Type:K, Default:K), S:K , E1:K), L, E2:K) => matched(McArr(labelPattern(L, true, Pattern, Type, Default), S, E1))
+*/
+ /*   rule matchLabel(McArr(labelPattern(L:Id, false, Pattern:K, Type:K, Default:K), S:K , E1:K), L, E2:K) => matched(McArr(labelPattern(L, true, Pattern, Type, Default), S, E1))
     rule matchLabel(McArr(labelPattern(P:Id, false, Pattern:K, Type:K, Default:K), S:K , E1:K), L:Id, E2:K) => matchLabel(E1, L, E2) 
     ~> matchLabel(McArr(labelPattern(P:Id, false, Pattern:K, Type:K, Default:K), S, E1), L, E2) when P =/=K L
 
@@ -612,11 +666,35 @@ syntax KItem ::= matchLabel(K, K, K)
 
     rule reduceClosure(Env, McArr(P:K, S:K, E1:K)) => 
     closure(Env, McArr(P, S:K, E1:K))   //where P =/= labelPattern
-
+*/
     rule
         <k> apply(closure(Env':Map, MC:K), V:KResult, Args:ElemList) => apply(ExMat(V, MC), Args) ~> env(Env) ...</k>
         <env> Env => Env' </env>
 
+syntax KItem ::= matchArgs(Map, K, KList, Klist, K, KList) 
+                | copylabels(KList, Klist, K)
+
+    rule <k> apply(closure(Env':Map,NArg1:K, T1:KList, O1:KList, R1:K), Args:KList) => 
+        matchArgs(Env':Map,NArg1:K, T1:KList, O1:KList, R1:K, Args:KList) ~> env(Env) ... </k>
+<env> Env => Env' </env>
+
+
+
+
+//Liyi, is that syntactically correct? Which adaptations do you propose?
+/* rule matchArgs(Env':Map,NArg1:K, T1:KList, ... optionalLabelPattern(I:Id, B:Bool, P:K, T:K, DV:K) ..., R1:K, ... ExprOptLabelIdVal(X:Id, V:KResult)...) => 
+    matchArgs(Env':Map (.Map => I:Id |-> V) , NArg1:K, T1:KList, 
+      ... optionalLabelPattern(I:Id, False => True, P:K, T:K, DV:K) ..., R1:K, ... (ExprOptLabelIdVal(I:Id, V:KResult) => .KList) ...)
+
+
+rule matchArgs(Env':Map (.Map => I:Id |-> V) , NArg1:K, ... tildeLabelPattern(I:Id, False => True, P:K, T:K, DV:K) ..., O:Klist, 
+      R1:K, ... (ExprLabelIdVal(I:Id, V:KResult) => .KList) ...)
+//We need an efficient way to go through "R1" and find the first non-labeled argument that matches. Any suggestions?
+rule matchArgs(Env':Map, Pattern:K, TList: KList, OList:KList, R1:K, Args:KList) => apply(Env', copylabels(TList, OList, ExMat(R1, Pattern, R1)), Args)
+  when notBool (OList contains optionalLabelPattern(I2:Id, B:Bool, P:K, T:K, DV:K) && Args contains ExprOptLabelIdVal(I2:Id, V:KResult))
+  
+
+*/
 
 
 endmodule
