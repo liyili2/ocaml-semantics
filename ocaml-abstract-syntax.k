@@ -3,7 +3,7 @@ imports  OCAML-SYNTAX
     syntax O ::= Location(K, K) // LocationInfo, K
     syntax O ::= LocationInfo(Int, Int) // start, stop
 
-    syntax LId ::= IdLid(AllOps)
+    syntax LId ::= IdLid(K)
     syntax UId ::= IdUid(String)
 
     syntax Id ::= LId | UId
@@ -64,6 +64,13 @@ imports  OCAML-SYNTAX
     syntax O ::= ExTry(K, K)
     syntax O ::= ExRec(K, K) [strict(1)]
 
+    syntax O ::= ExChar(String)
+    syntax O ::= ExStr(String)
+    syntax UId ::= ConsUId(K, K)
+    syntax LId ::= ConsLId(K, K)
+    syntax O ::= "ExNilList"
+    syntax O ::= "ExNilArray"
+    syntax O ::= ExTypeVal(String)
 
     syntax O ::= StExp(K) // expr
     syntax O ::= StSem(K, K) // st1 ;; st2
