@@ -18,8 +18,8 @@ imports  OCAML-SYNTAX
     syntax O ::= PaCom(K, K)
     syntax O ::= PaOrp(K, K)
     syntax O ::= PaApp(K, K)
-    syntax O ::= PatternLabel(Id)
-    syntax O ::= PatternOptionalLabel(Id)
+   // syntax O ::= PatternLabel(Id)
+   // syntax O ::= PatternOptionalLabel(Id)
     syntax O ::= PatternConst(K)
     syntax O ::= PatternDoubleChar(K, K)
     syntax O ::= PatternLazy(K)
@@ -49,7 +49,7 @@ imports  OCAML-SYNTAX
     syntax O ::= ExBool(Bool)
     syntax O ::= ExInt(Int)
     syntax O ::= ExFloat(Float)
-    syntax O ::= ExApp(K, K) // e1 e2
+    syntax O ::= ExApp(K, KList) // e1 e2
     syntax O ::= ExTup(K) [strict, hybrid]
     syntax O ::= ExCom(K, K) [strict, hybrid]
     syntax O ::= ExMat(K, K) [strict(1)] // value, match-case
@@ -76,23 +76,7 @@ imports  OCAML-SYNTAX
     syntax O ::= StSem(K, K) // st1 ;; st2
     syntax O ::= StExc(K, K) // exception
     syntax KItem ::= K "<-" K
-
-    //type constructs
     syntax O ::= TyId(K)
-    syntax O ::= TyConstr(K)
-    syntax O ::= TyWithArg(K, K)//type typeConstr
-    syntax O ::= TyList(K)//type typeConstr
-    syntax O ::= TyPair(K, K)//type typeConstr
-    syntax O ::= TyMethods(K, Bool)//typelist, hasExtention? 
-    syntax O ::= TyFieldType(K, K)//Field name, type
-    syntax O ::= TyFun(K, K, K)//label, type, type
-    syntax O ::= TyQuestionMark(K)//labelname
-    syntax O ::= TyTilter(K)//labelname
-    syntax O ::= TyWithName(K, K)//type, typename 
-    syntax O ::= TyListCons(K, K)
-    syntax O ::= TySingleMethod(K, K)//name, polytype
-    syntax O ::= TyMethodCons(K, K)
-    syntax O ::= TyQuantifier(K, K)
 
     syntax AllOps ::= Unit| ConsOp | ImportantOps 
 
@@ -100,7 +84,8 @@ imports  OCAML-SYNTAX
     // TODO maybe we should fix this?
     syntax O ::= "none"
 
-    syntax O ::= labelPattern(Id, Bool, K, K, K) //name, initial yet, pattern, type, default value.
+    syntax O ::= tildeLabelPattern(Id, Bool, K, K, K) //name, initial yet, pattern, type, default value.
+    syntax O ::= optionalLabelPattern(Id, Bool, K, K, K) //name, initial yet, pattern, type, default value.
 
     syntax ListFactor ::= funFactor(O,O)
     syntax FunList ::= List{ListFactor,","}
