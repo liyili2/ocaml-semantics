@@ -6,8 +6,9 @@ module OCAML-SYNTAX
 
     syntax ValueName ::= LowerCaseName
                        | "(" OperatorName ")"          [klabel('operatorAsName)]
-    syntax OperatorName ::= PrefixSymbol | InfixSymbol
-                          | ImportantOps [prefer]
+    syntax OperatorUnName ::= PrefixSymbol
+                            | ImportantOps [prefer]
+    syntax OperatorName ::= OperatorUnName | InfixSymbol
     syntax PrefixSymbol ::= Token{[\!][\! \$ \% \& \* \+ \- \. \/ \: \< \= \> \? \@ \^ \| \~]*}
                             [onlyLabel]
                           | Token{[\? \~][\! \$ \% \& \* \+ \- \. \/ \: \< \= \> \? \@ \^ \| \~]+}
@@ -174,7 +175,7 @@ module OCAML-SYNTAX
     syntax Expr ::= Constant
                   | ValuePath                                      [prefer]
                   | "(" Expr ")"                                   [bracket]
-                  > PrefixSymbol Expr                              [klabel('prefixExpr)]
+                  > OperatorUnName Expr                            [klabel('unaryOp)]
                   > AllowArrowExpr
                   > Expr ConsOp LowerCaseName                      [klabel('exprAsName)]
                   > "assert" Expr
@@ -183,8 +184,8 @@ module OCAML-SYNTAX
                   | Expr ArgumentList                              [left,klabel('exprWithArgs)]
                   | "`" CapitalizedName Expr                       [left,klabel('exprWithTag)]
                   | Constr Expr                                    [left,klabel('exprWithConstr)]
-                  > Not Expr                                       [klabel('unaryOp)]
-                  | MinusUnOp Expr                                 [klabel('unaryOp)]
+                  //> Not Expr                                       [klabel('unaryOp)]
+                  //| MinusUnOp Expr                                 [klabel('unaryOp)]
                   > Expr ExOp Expr                                 [right,klabel('binaryExOp)]
                   | Expr LogicShiftOp Expr                         [right,klabel('binaryLogicOp)]
                   > Expr MathOp Expr                               [left,klabel('mathTimesOp)]
@@ -235,7 +236,8 @@ module OCAML-SYNTAX
     syntax Argument ::= Expr | LabelName
                       | LabelName ":" Expr [klabel('label)]
 
-    syntax ArgumentList ::= Argument | Argument ArgumentList
+    syntax ArgumentList ::= Argument
+                          | Argument ArgumentList  [klabel('argCon)]
     syntax AllowArrowExpr ::= LowerCaseName
                             | Expr "." Field
                             | Expr "." "(" Expr ")"

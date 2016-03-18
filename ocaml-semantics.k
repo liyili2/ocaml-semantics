@@ -23,6 +23,7 @@ module OCAML-SYNTAX-EXTRAS
         | "getStringElement"
         | "getFieldValue"  // from a class
         | "assert"        //apply an assert to a boolean expression
+        | "assignElement"        //apply an assert to a boolean expression
 
     syntax Location ::= Location(Int)
     syntax KResult ::= Location
@@ -45,10 +46,7 @@ module OCAML-TRANS
     
 
     syntax KItem ::= translationParam(Parameter) 
-    syntax KItem ::= translationTypeExpr(TypeExpr) 
-    syntax KItem ::= translationTypeExprList(TypeExprList)
-    syntax KItem ::= translationPolyType(PolyTypeExpr)
-    syntax KItem ::= translationMethodTypeList(MethodTypeList)
+
     syntax KItem ::= translationApp(K, ArgumentList)
     syntax KItem ::= translationArg(Argument)
     syntax KItem ::= translationArgs(ArgumentList)
@@ -62,7 +60,12 @@ module OCAML-TRANS
     syntax KItem ::= translationLetRecBindings(LetBindingList)
     syntax KItem ::= translationToBindingForm(K)
     syntax KItem ::= translationPatternMatching(PatternMatching)
-
+    
+    //translating type expressions
+    syntax KItem ::= translationTypeExpr(TypeExpr) 
+    syntax KItem ::= translationTypeExprList(TypeExprList)
+    syntax KItem ::= translationPolyType(PolyTypeExpr)
+    syntax KItem ::= translationMethodTypeList(MethodTypeList)
 
     //translation of long list of ids
     syntax KItem ::= translationIdentifierList(IdentifierQuoteList)    [function]
@@ -78,6 +81,13 @@ module OCAML-TRANS
     syntax KItem ::= translationExpr(Expr)                             [function]
     syntax KItem ::= translationAllowExpr(AllowArrowExpr)              [function]
     syntax KItem ::= translationConstant(Constant)                     [function]
+    syntax KItem ::= translationExprWithArgs(K, ArgumentList, K)       [function]
+
+    //helper functions for constructing apply of expressions.
+    syntax ElemList ::= getAllTildas(ArgumentList)                     [function]
+    syntax ElemList ::= getAllMarks(ArgumentList)                      [function]
+    syntax ElemList ::= getAllNormals(ArgumentList)                    [function]
+    syntax KItem ::= constructApp(K, ElemList)                         [function]
 
     syntax KItem ::= "assign" "(" K ")"
 
@@ -286,7 +296,7 @@ module OCAML-TRANS
     //translating Exprs
     rule translationExpr(V:ValuePath) => ExId(translationValuePath(V))
     rule translationExpr(V:Constant) => translationConstant(V)
-    rule translationExpr('prefixExpr(P:PrefixSymbol,, E:Expr))
+    rule translationExpr('unaryOp(P:OperatorUnName,, E:Expr))
                                      => ExApp(ExId(IdUid(P)), translationExpr(E))
     rule translationExpr(V:AllowArrowExpr) => translationAllowExpr(V)
     rule translationExpr(E:Expr # S:LowerCaseName) => ExApp(ExApp(ExId(IdUid(getFieldValue))
@@ -298,44 +308,122 @@ module OCAML-TRANS
                                      => ExTagVal(ExId(IdUid(C)), translationExpr(E))
     rule translationExpr('exprWithConstr(C:Constr,, E:Expr))
                                      =>  ExApp(ExId(translationConstr(C)), translationExpr(E))
+    rule translationExpr('unaryOp(Op:ImportantOps,, E:Expr))
+                                     => ExApp(ExId(IdUid(Op)), translationExpr(E))
+    rule translationExpr('binaryExOp(Op:ExOp,, E1:Expr,, E2:Expr))
+                                     => ExApp(ExApp(ExId(IdUid(Op))
+                                                , translationExpr(E1)),translationExpr(E1))
+    rule translationExpr('binaryLogicOp(Op:LogicShiftOp,, E1:Expr,, E2:Expr))
+                                     => ExApp(ExApp(ExId(IdUid(Op))
+                                                , translationExpr(E1)),translationExpr(E1))
+    rule translationExpr('mathTimesOp(Op:MathOp,, E1:Expr,, E2:Expr))
+                                     => ExApp(ExApp(ExId(IdUid(Op))
+                                                , translationExpr(E1)),translationExpr(E1))
+    rule translationExpr('mathPlusOp(Op:AllPlusAndMinus,, E1:Expr,, E2:Expr))
+                                     => ExApp(ExApp(ExId(IdUid(Op))
+                                                , translationExpr(E1)),translationExpr(E1))
+    rule translationExpr('binaryListOp(Op:ListOp,, E1:Expr,, E2:Expr))
+                                     => ExApp(ExApp(ExId(IdUid(Op))
+                                                , translationExpr(E1)),translationExpr(E1))
+    rule translationExpr('concatOp(Op:ConcatOp,, E1:Expr,, E2:Expr))
+                                     => ExApp(ExApp(ExId(IdUid(Op))
+                                                , translationExpr(E1)),translationExpr(E1))
+    rule translationExpr('compareOp(Op:CompareOp,, E1:Expr,, E2:Expr))
+                                     => ExApp(ExApp(ExId(IdUid(Op))
+                                                , translationExpr(E1)),translationExpr(E1))
+    rule translationExpr('binaryAndOp(Op:BinaryAnd,, E1:Expr,, E2:Expr))
+                                     => ExApp(ExApp(ExId(IdUid(Op))
+                                                , translationExpr(E1)),translationExpr(E1))
+    rule translationExpr('binaryOrOp(Op:BinaryOr,, E1:Expr,, E2:Expr))
+                                     => ExApp(ExApp(ExId(IdUid(Op))
+                                                , translationExpr(E1)),translationExpr(E1))
+    rule translationExpr('binaryUnknownOp(Op:InfixSymbol,, E1:Expr,, E2:Expr))
+                                     => ExApp(ExApp(ExId(IdUid(Op))
+                                                , translationExpr(E1)),translationExpr(E1))
+    rule translationExpr('binarySepOp(Op:SepOp,, E1:Expr,, E2:Expr))
+                                     => ExApp(ExApp(ExId(IdUid(Op))
+                                                , translationExpr(E1)),translationExpr(E1))
+    rule translationExpr('binaryAssignOp(Op:AssignOp,, E1:Expr,, E2:Expr))
+                                     => ExApp(ExApp(ExId(IdUid(Op))
+                                                , translationExpr(E1)),translationExpr(E1))
+    rule translationExpr('binaryListSepOp(Op:ListSepOp,, E1:Expr,, E2:Expr))
+                                     => ExApp(ExApp(ExId(IdUid(Op))
+                                                , translationExpr(E1)),translationExpr(E1))
+    rule translationExpr(begin E:Expr end) => translationExpr(E)
+    rule translationExpr(if E1:Expr then E2:Expr) 
+                      => ExMat(translationExpr(E1), McOr(McArr(true, ExNil, translationExpr(E2)),
+                                                    McArr(false, ExNil, ExId(IdUid("()")))))
+    rule translationExpr(if E1:Expr then E2:Expr else E3:Expr) 
+                      => ExMat(translationExpr(E1), McOr(McArr(true, ExNil, translationExpr(E2)),
+                                                    McArr(false, ExNil, translationExpr(E3))))
+    rule translationExpr('exprWithArgs(E:Expr,, As:ArgumentList))
+                                  => ExAppList(translationExpr(E), getAllTildas(As),
+                                                       getAllMarks(As), getAllNormals(As))
+                      requires getAllTildas(As) =/=K .ElemList
+                          orBool getAllMarks(As) =/=K .ElemList
+    rule translationExpr('exprWithArgs(E:Expr,, As:ArgumentList))
+                                  => constructApp(translationExpr(E),getAllNormals(As))
+                      requires getAllTildas(As) ==K .ElemList
+                                 andBool getAllMarks(As) ==K .ElemList
+
+    //translating argument lists with expression.
+    rule constructApp(K:K, .ElemList) => K
+    rule constructApp(K:K, (val(E:K),As:ElemList)) => constructApp(ExApp(K,E), As)
+
+    rule getAllTildas(~ X:LowerCaseName) => val(ExprLabelId(IdUid(X),ExNil))
+    rule getAllTildas(~ X:LowerCaseName : E:Expr)
+                                         => val(ExprLabelId(IdUid(X),translationExpr(E)))
+    rule getAllTildas(? X:LowerCaseName) => .ElemList
+    rule getAllTildas(? X:LowerCaseName : E:Expr) => .ElemList
+    rule getAllTildas(E:Expr) => .ElemList
+    rule getAllTildas('argCon(~ X:LowerCaseName,, As:ArgumentList))
+                                   => val(ExprLabelId(IdUid(X),ExNil)),getAllTildas(As)
+    rule getAllTildas('argCon(~ X:LowerCaseName : E:Expr,, As:ArgumentList))
+                            => val(ExprLabelId(IdUid(X),translationExpr(E))),getAllTildas(As)
+    rule getAllTildas('argCon(? X:LowerCaseName,, As:ArgumentList)) => getAllTildas(As)
+    rule getAllTildas('argCon(? X:LowerCaseName : E:Expr,, As:ArgumentList)) => getAllTildas(As)
+    rule getAllTildas('argCon(E:Expr,, As:ArgumentList)) => getAllTildas(As)
+
+
+    rule getAllMarks(~ X:LowerCaseName) => .ElemList
+    rule getAllMarks(~ X:LowerCaseName : E:Expr) => .ElemList
+    rule getAllMarks(? X:LowerCaseName) => val(ExprLabelId(IdUid(X),ExNil))
+    rule getAllMarks(? X:LowerCaseName : E:Expr)
+                                   => val(ExprLabelId(IdUid(X),translationExpr(E)))
+    rule getAllMarks(E:Expr) => .ElemList
+    rule getAllMarks('argCon(~ X:LowerCaseName,, As:ArgumentList))
+                                   => getAllMarks(As)
+    rule getAllMarks('argCon(~ X:LowerCaseName : E:Expr,, As:ArgumentList))
+                            => getAllMarks(As)
+    rule getAllMarks('argCon(? X:LowerCaseName,, As:ArgumentList))
+                            => val(ExprLabelId(IdUid(X),ExNil)),getAllMarks(As)
+    rule getAllMarks('argCon(? X:LowerCaseName : E:Expr,, As:ArgumentList))
+                           => val(ExprLabelId(IdUid(X),translationExpr(E))),getAllMarks(As)
+    rule getAllMarks('argCon(E:Expr,, As:ArgumentList)) => getAllMarks(As)
+
+
+    rule getAllNormals(~ X:LowerCaseName) => .ElemList
+    rule getAllNormals(~ X:LowerCaseName : E:Expr) => .ElemList
+    rule getAllNormals(? X:LowerCaseName) => .ElemList
+    rule getAllNormals(? X:LowerCaseName : E:Expr) => .ElemList
+    rule getAllNormals(E:Expr) => val(translationExpr(E))
+    rule getAllNormals('argCon(~ X:LowerCaseName,, As:ArgumentList))
+                                   => getAllNormals(As)
+    rule getAllNormals('argCon(~ X:LowerCaseName : E:Expr,, As:ArgumentList))
+                            => getAllNormals(As)
+    rule getAllNormals('argCon(? X:LowerCaseName,, As:ArgumentList)) => getAllNormals(As)
+    rule getAllNormals('argCon(? X:LowerCaseName : E:Expr,, As:ArgumentList)) => getAllNormals(As)
+    rule getAllNormals('argCon(E:Expr,, As:ArgumentList)) => val(translationExpr(E)),getAllNormals(As)
 /*
-syntax Expr ::= Constant
-                  | ValuePath
-                  | "(" Expr ")"                                   [bracket]
-                  > PrefixSymbol Expr
-                  > AllowArrowExpr
-                  > Expr ConsOp LowerCaseName                      [klabel('exprAsName)]
-                  > "assert" Expr
-                  | "lazy" Expr
-                  | "new" Field
+syntax Expr ::=
                   | Expr ArgumentList                              [left,klabel('exprWithArgs)]
-                  | "`" CapitalizedName Expr                       [left,klabel('exprWithTag)]
-                  | Constr Expr                                    [left,klabel('exprWithConstr)]
-                  > Not Expr                                       [klabel('unaryOp)]
-                  | MinusUnOp Expr                                 [klabel('unaryOp)]
-                  > Expr ExOp Expr                                 [right,klabel('binaryExOp)]
-                  | Expr LogicShiftOp Expr                         [right,klabel('binaryLogicOp)]
-                  > Expr MathOp Expr                               [left,klabel('mathTimesOp)]
-                  > Expr AllPlusAndMinus Expr                      [left,klabel('mathPlusOp)]
-                  > Expr ListOp Expr                               [right,klabel('binaryListOp)]
-                  > Expr ConcatOp Expr                             [right,klabel('concatOp)]
-                  > Expr CompareOp Expr                            [right,klabel('compareOp)]
-                  > Expr BinaryAnd Expr                            [right,klabel('binaryAndOp)]
-                  > Expr BinaryOr Expr                             [left,klabel('binaryOrOp)]
-                  > Expr InfixSymbol Expr                          [avoid,left,klabel('binaryUnknownOp)]
-                  > Expr SepOp Expr                                [left,klabel('binarySepOp)]
-                  > AllowArrowExpr "<-" Expr                       [right,klabel('assignTo)]
-                  | Expr AssignOp Expr                             [right,klabel('binaryAssignOp)]
-                  > "if" Expr "then" Expr
-                  | "if" Expr "then" Expr "else" Expr
-                  > Expr ListSepOp Expr                            [right,klabel('binaryListSepOp)]
+
                   > "match" Expr "with" PatternMatching            [klabel('matchingExpr)]
                   | "function" PatternMatching
                   | "fun" MultipleMatching
                   | "try" Expr "with" PatternMatching
                   | "let" LetBindingList "in" Expr
                   | "let" "rec" LetBindingList "in" Expr
-                  | "begin" Expr "end"
                   | "while" Expr "do" Expr "done"
                   | "for" ValueName "=" Expr "to" Expr "do" Expr "done"
                   | "for" ValueName "=" Expr "downto" Expr "do" Expr "done"
@@ -1047,7 +1135,28 @@ endmodule
 module OCAML-SEMANTICS
     imports OCAML-TRANS
     imports OCAML-INCLUDE
+/*
+    imports OCAML-UNIT
+    imports OCAML-ARITHMETIC
+    imports OCAML-BOOLEANS
 
+    imports OCAML-CONTROL-FLOW
+    imports OCAML-LET-LETREC
+    imports OCAML-FUNCTIONS
+    imports OCAML-EXCEPTIONS
 
+    imports OCAML-RECORDS
+    imports OCAML-REF
+    imports OCAML-IO
+    imports OCAML-PATTERNS
+    imports OCAML-MATCHING
 
+    imports OCAML-TOP-LEVEL
+
+    imports OCAML-HELPERS
+
+    imports OCAML-INIT
+
+    imports OCAML-CLEANUP
+*/
 endmodule

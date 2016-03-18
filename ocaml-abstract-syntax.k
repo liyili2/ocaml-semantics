@@ -46,6 +46,8 @@ imports  OCAML-SYNTAX
 
 
     syntax KItem ::= ExApp(K, K) // e1 e2
+    syntax KItem ::= ExAppList(K, K, K, K) // (e,tildas, ?s, normals)
+    //syntax KItem ::= ExAppTildas(K, K) // (e,tildas)
     syntax KItem ::= ExTup(K) [strict, hybrid]
     syntax KItem ::= ExCom(K, K) [strict, hybrid]
     syntax KItem ::= ExMat(K, K) [strict(1)] // value, match-case
@@ -66,8 +68,8 @@ imports  OCAML-SYNTAX
     //constant values.
     syntax KItem ::= "ExNil"
     syntax KItem ::= ExId(K) // id
-    syntax KItem ::= ExprLabelId(Id, K) [strict(2)] // name , value
-    syntax KItem ::= ExprOptLabelId(Id, K) [strict(2)]// name , value
+    syntax KItem ::= ExprLabelId(UId, K) [strict(2)] // name , value 
+    syntax KItem ::= ExprOptLabelId(Id, K, Bool) [strict(2)]// name , value, isInitialized
     syntax KItem ::= ExBool(Bool)
     syntax KItem ::= ExInt(Int)
     syntax KItem ::= ExFloat(Float)
@@ -119,6 +121,10 @@ imports  OCAML-SYNTAX
     syntax Element ::= ElementResult
     syntax KResult ::= ElementResult
     rule val(K:KResult) => K [structural]
+
+    syntax KItem ::= headOfElemList(ElemList)    [function]
+    rule headOfElemList(.ElemList) => ExNil
+    rule headOfElemList(val(K:K), _:ElemList) => K
 
     syntax ElemList ::= List{Element,","} [strict]
     syntax Int ::= lengthOfList(ElemList) [function]
