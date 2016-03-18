@@ -387,18 +387,18 @@ module OCAML-TRANS
 
     rule getAllMarks(~ X:LowerCaseName) => .ElemList
     rule getAllMarks(~ X:LowerCaseName : E:Expr) => .ElemList
-    rule getAllMarks(? X:LowerCaseName) => val(ExprLabelId(IdUid(X),ExNil))
+    rule getAllMarks(? X:LowerCaseName) => val(ExprOptLabelId(IdUid(X),ExNil, false))
     rule getAllMarks(? X:LowerCaseName : E:Expr)
-                                   => val(ExprLabelId(IdUid(X),translationExpr(E)))
+                                   => val(ExprOptLabelId(IdUid(X),translationExpr(E), false))
     rule getAllMarks(E:Expr) => .ElemList
     rule getAllMarks('argCon(~ X:LowerCaseName,, As:ArgumentList))
                                    => getAllMarks(As)
     rule getAllMarks('argCon(~ X:LowerCaseName : E:Expr,, As:ArgumentList))
                             => getAllMarks(As)
     rule getAllMarks('argCon(? X:LowerCaseName,, As:ArgumentList))
-                            => val(ExprLabelId(IdUid(X),ExNil)),getAllMarks(As)
+                            => val(ExprOptLabelId(IdUid(X), ExNil, false)),getAllMarks(As)
     rule getAllMarks('argCon(? X:LowerCaseName : E:Expr,, As:ArgumentList))
-                           => val(ExprLabelId(IdUid(X),translationExpr(E))),getAllMarks(As)
+                     => val(ExprOptLabelId(IdUid(X), translationExpr(E), false)),getAllMarks(As)
     rule getAllMarks('argCon(E:Expr,, As:ArgumentList)) => getAllMarks(As)
 
 
@@ -416,8 +416,6 @@ module OCAML-TRANS
     rule getAllNormals('argCon(E:Expr,, As:ArgumentList)) => val(translationExpr(E)),getAllNormals(As)
 /*
 syntax Expr ::=
-                  | Expr ArgumentList                              [left,klabel('exprWithArgs)]
-
                   > "match" Expr "with" PatternMatching            [klabel('matchingExpr)]
                   | "function" PatternMatching
                   | "fun" MultipleMatching
