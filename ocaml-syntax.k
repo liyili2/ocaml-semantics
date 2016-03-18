@@ -5,7 +5,7 @@ module OCAML-SYNTAX
     syntax Identifier ::= LowerCaseName | CapitalizedName
 
     syntax ValueName ::= LowerCaseName
-                       | "(" OperatorName ")"
+                       | "(" OperatorName ")"          [klabel('operatorAsName)]
     syntax OperatorName ::= PrefixSymbol | InfixSymbol
                           | ImportantOps [prefer]
     syntax PrefixSymbol ::= Token{[\!][\! \$ \% \& \* \+ \- \. \/ \: \< \= \> \? \@ \^ \| \~]*}
@@ -61,7 +61,7 @@ module OCAML-SYNTAX
 
     syntax Constant ::= IntegerLiteral | FloatLiteral | CharLiteral | StringLiteral
                        | Constr | Bool | Unit | "begin" "end"
-                       | "[]" | "[||]" | "`" CapitalizedName
+                       | "[" "]" | "[|" "|]" | SingleTag
     syntax IntegerLiteral ::= Token{[0-9][0-9 \_]*} [onlyLabel, prefer]
  	           | Token{([0x]| [0X])[0-9 A-F a-f][0-9 A-F a-f \_]*}
                      [onlyLabel]
@@ -77,7 +77,8 @@ module OCAML-SYNTAX
     syntax StringLiteral ::= Token{[\"] (~[\" \\] | (([\\][\\ \" \' n t b r \ ])|([\\][0-9][0-9][0-9])|([\\][x][0-9 A-F a-f][0-9 A-F a-f])) | ([\\][\n][\t \ ]))* [\"]} [onlyLabel]
 
 
-    syntax Constr ::= CapitalizedName | CapitalizedName "." Constr
+    syntax Constr ::= CapitalizedName
+                    | CapitalizedName "." Constr     [klabel('constrDot)]
 
 
     //define type expression
@@ -103,24 +104,28 @@ module OCAML-SYNTAX
                       > TypeExpr "as" Identifier
 
 
-    syntax TypeConstr ::= LowerCaseName | ExtendedModulePath "." LowerCaseName
+    syntax TypeConstr ::= LowerCaseName
+                        | ExtendedModulePath "." LowerCaseName            [klabel('typeConstrDot)]
     syntax ExtendedModuleName ::= CapitalizedName | ExtendedModuleName "(" ExtendedModulePath ")"
-    syntax ExtendedModulePath ::= ExtendedModuleName | ExtendedModuleName "." ExtendedModulePath
+    syntax ExtendedModulePath ::= ExtendedModuleName
+                                | ExtendedModuleName "." ExtendedModulePath   [klabel('extendedPathDot)]
 
     syntax TypeExprList ::= TypeExpr
                           | TypeExpr "," TypeExprList
-    syntax PolyTypeExpr ::= TypeExpr | IdentifierQuoteList "." TypeExpr
+    syntax PolyTypeExpr ::= TypeExpr
+                          | IdentifierQuoteList "." TypeExpr           [klabel('polyTypeExprDot)]
     syntax IdentifierQuoteList ::= "'" Identifier | "'" Identifier IdentifierQuoteList
     syntax MethodType ::= LowerCaseName ":" PolyTypeExpr       [klabel('labelAsPolyType)]
     syntax MethodTypeList ::= MethodType | MethodType ";" MethodTypeList
 
     //define polymorphic-variant-type
-    syntax TagSpec ::= "`" CapitalizedName | "`" CapitalizedName "of" TypeExpr | TypeExpr
+    syntax SingleTag ::= "`" CapitalizedName
+    syntax TagSpec ::= SingleTag | "`" CapitalizedName "of" TypeExpr | TypeExpr
     syntax TagSpecList ::= TagSpec | TagSpec "|" TagSpecList
     syntax TagSpecFull ::= TagSpec | "`" CapitalizedName "of" TagTypeExprList
     syntax TagTypeExprList ::= "&" TypeExpr | "&" TypeExpr TagTypeExprList
     syntax TagSpecFullList ::= TagSpecFull | TagSpecFull "|" TagSpecList
-    syntax TagNameList ::= "`" CapitalizedName | "`" CapitalizedName TagNameList
+    syntax TagNameList ::= SingleTag | "`" CapitalizedName TagNameList
 
     syntax PolyVariantType ::= "[" TagSpecList "]"           [klabel('TagSepcAsPolyType)]
                              | "[" "|" TagSpecList "]"       [klabel('TagSepcAsPolyType)]
@@ -159,14 +164,17 @@ module OCAML-SYNTAX
     syntax FieldPattern ::= Field "=" Pattern        [klabel('fieldPatternAssign)]
     syntax FieldExprList ::= FieldExpr | FieldExpr ";" FieldExprList
     syntax FieldExpr ::= Field "=" Expr              [klabel('fieldExprAssign)]
-    syntax Field ::= LowerCaseName | CapitalizedName "." Field
+    syntax Field ::= LowerCaseName
+                   | CapitalizedName "." Field       [klabel('fieldNameDot)]
 
     //define expressions.
-    syntax ValuePath ::= ValueName | CapitalizedName "." ValuePath
+    syntax ValuePath ::= ValueName
+                       | CapitalizedName "." ValuePath   [klabel('valuePathDot)]
+
     syntax Expr ::= Constant
-                  | ValuePath
+                  | ValuePath                                      [prefer]
                   | "(" Expr ")"                                   [bracket]
-                  > PrefixSymbol Expr
+                  > PrefixSymbol Expr                              [klabel('prefixExpr)]
                   > AllowArrowExpr
                   > Expr ConsOp LowerCaseName                      [klabel('exprAsName)]
                   > "assert" Expr
@@ -378,7 +386,7 @@ module OCAML-SYNTAX
     syntax ModConstraint ::= "type" TypeParams TypeConstr "=" TypeExpr
                            | "module" Constr "=" ExtendedModulePath
     syntax ModConstraintList ::= ModConstraint | ModConstraint "and" ModConstraintList
-    syntax ModTypePath ::= ExtendedModulePath "." Identifier
+    syntax ModTypePath ::= ExtendedModulePath "." Identifier             [klabel('modTypePathDot)]
     syntax ModuleType ::= ModTypePath
                         | "sig" SpecificationList "end"
                         | "functor" "(" CapitalizedName ":" ModuleType ")" "->" ModuleType

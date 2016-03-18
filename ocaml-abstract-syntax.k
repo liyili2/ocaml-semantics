@@ -1,95 +1,118 @@
 module OCAML-ABSTRACT-SYNTAX
 imports  OCAML-SYNTAX
-    syntax O ::= Location(K, K) // LocationInfo, K
-    syntax O ::= LocationInfo(Int, Int) // start, stop
+    syntax KItem ::= Location(K, K) // LocationInfo, K
+    syntax KItem ::= LocationInfo(Int, Int) // start, stop
 
     syntax LId ::= IdLid(K)
     syntax UId ::= IdUid(K)
+    syntax UId ::= ModuleNameList(UId, UId)
+    syntax UId ::= ModulePathList(UId, UId)
 
     syntax Id ::= LId | UId
-    syntax O ::= Id
+    syntax KItem ::= Id
 
-    syntax O ::= PatternIdentifier(K)
-    syntax O ::= PatternInteger(Int)
-    syntax O ::= "Wildcard"
-    syntax O ::= PaAli(K, K)
-    syntax O ::= PaTyc(K, K)
-    syntax O ::= PaTup(K)
-    syntax O ::= PaCom(K, K)
-    syntax O ::= PaOrp(K, K)
-    syntax O ::= PaApp(K, K)
-   // syntax O ::= PatternLabel(Id)
-   // syntax O ::= PatternOptionalLabel(Id)
-    syntax O ::= PatternConst(K)
-    syntax O ::= PatternDoubleChar(K, K)
-    syntax O ::= PatternLazy(K)
-    syntax O ::= PatternTag(K, K)
-    syntax O ::= PaConstType(K)
-    syntax O ::= PaList(K, K)
-    syntax O ::= PaTuple(K, K)
-    syntax O ::= PaRecord(K)
-    syntax O ::= FieldPattern(K, K)
+    syntax KItem ::= PatternIdentifier(K)
+    //syntax KItem ::= PatternInteger(Int)
+    syntax KItem ::= "Wildcard"
+    syntax KItem ::= PaAli(K, K)
+    syntax KItem ::= PaTyc(K, K)
+    syntax KItem ::= PaTup(K)
+    syntax KItem ::= PaCom(K, K)
+    syntax KItem ::= PaOrp(K, K)
+    syntax KItem ::= PaApp(K, K)
+   // syntax KItem ::= PatternLabel(Id)
+   // syntax KItem ::= PatternOptionalLabel(Id)
+    syntax KItem ::= PatternConst(K)
+    syntax KItem ::= PatternDoubleChar(K, K)
+    syntax KItem ::= PatternLazy(K)
+    syntax KItem ::= PatternTag(K, K)
+    syntax KItem ::= PaConstType(K)
+    syntax KItem ::= PaList(K, K)
+    syntax KItem ::= PaTuple(K, K)
+    syntax KItem ::= PaRecord(K)
+    syntax KItem ::= FieldPattern(K, K)
 
-    syntax O ::= McOr(K, K)
-    syntax O ::= McArr(K, K, K) [strict(1)]
+    syntax KItem ::= McOr(K, K)
+    syntax KItem ::= McArr(K, K, K) [strict(1)]
 
-    syntax O ::= BinaryAnd(K,K) [seqstrict]
-    syntax O ::= BinaryOr(K,K) [seqstrict]
+    syntax KItem ::= BinaryAnd(K,K) [seqstrict]
+    syntax KItem ::= BinaryOr(K,K) [seqstrict]
 
-    syntax O ::= BindingAnd(K, K) [strict]
-    syntax O ::= BindingEquality(K, K) // pat = v
+    syntax KItem ::= BindingAnd(K, K) [strict]
+    syntax KItem ::= BindingEquality(K, K) // pat = v
 
-    syntax O ::= RbEq(K, K) [strict(2), hybrid] // x = v
-    syntax O ::= RbSem(K, K) [strict, superheat, hybrid]
+    syntax KItem ::= RbEq(K, K) [strict(2), hybrid] // x = v
+    syntax KItem ::= RbSem(K, K) [strict, superheat, hybrid]
 
-    syntax O ::= "ExNil"
-    syntax O ::= ExId(Id) // id
-    syntax O ::= ExprLabelId(Id, K) [strict(2)] // name , value
-    syntax O ::= ExprOptLabelId(Id, K) [strict(2)]// name , value
-    syntax O ::= ExBool(Bool)
-    syntax O ::= ExInt(Int)
-    syntax O ::= ExFloat(Float)
-    syntax O ::= ExApp(K, KList) // e1 e2
-    syntax O ::= ExTup(K) [strict, hybrid]
-    syntax O ::= ExCom(K, K) [strict, hybrid]
-    syntax O ::= ExMat(K, K) [strict(1)] // value, match-case
-    syntax O ::= ExFun(K) // match-case 
-    syntax O ::= ExSeq(K) // sequencing?
-    syntax O ::= ExSem(K, K) [strict(1)] // e1 ; e2
-    syntax O ::= ExIfe(K, K, K) [strict(1)] // if e1 then e1 else e3
-    syntax O ::= ExAss(K, K) [strict(2)] // e1 := e2
-    syntax O ::= ExAcc(K, K) [strict(1)] // e1.e2 (access)
-    syntax O ::= ExLet(K, K)
-    syntax O ::= ExLetRec(K, K)
-    syntax O ::= ExTry(K, K)
-    syntax O ::= ExRec(K, K) [strict(1)]
 
-    syntax O ::= ExChar(String)
-    syntax O ::= ExStr(String)
-    syntax UId ::= ConsUId(K, K)
+    syntax KItem ::= ExApp(K, K) // e1 e2
+    syntax KItem ::= ExTup(K) [strict, hybrid]
+    syntax KItem ::= ExCom(K, K) [strict, hybrid]
+    syntax KItem ::= ExMat(K, K) [strict(1)] // value, match-case
+    syntax KItem ::= ExFun(K) // match-case 
+    syntax KItem ::= ExSeq(K) // sequencing?
+    syntax KItem ::= ExSem(K, K) [strict(1)] // e1 ; e2
+    syntax KItem ::= ExIfe(K, K, K) [strict(1)] // if e1 then e1 else e3
+    syntax KItem ::= ExAss(K, K) [strict(2)] // e1 := e2
+    syntax KItem ::= ExAcc(K, K) [strict(1)] // e1.e2 (access)
+    syntax KItem ::= ExLet(K, K)
+    syntax KItem ::= ExLetRec(K, K)
+    syntax KItem ::= ExTry(K, K)
+    syntax KItem ::= ExRec(K, K) [strict(1)]
+    syntax KItem ::= ExConstr(K) //constructors as expressions.
+    syntax KItem ::= ExLazy(K) //lazy type for lazy expr
+    syntax KItem ::= ExNew(K)   //create new class
+
+    //constant values.
+    syntax KItem ::= "ExNil"
+    syntax KItem ::= ExId(K) // id
+    syntax KItem ::= ExprLabelId(Id, K) [strict(2)] // name , value
+    syntax KItem ::= ExprOptLabelId(Id, K) [strict(2)]// name , value
+    syntax KItem ::= ExBool(Bool)
+    syntax KItem ::= ExInt(Int)
+    syntax KItem ::= ExFloat(Float)
+    syntax KItem ::= ExChar(String)
+    syntax KItem ::= ExStr(String)
+    syntax UId ::= ConsUId(UId, UId)
     syntax LId ::= ConsLId(K, K)
-    syntax O ::= "ExNilList"
-    syntax O ::= "ExNilArray"
-    syntax O ::= ExTypeVal(String)
+    syntax KItem ::= "ExNilList"
+    syntax KItem ::= "ExNilArray"
+    syntax KItem ::= ExTagVal(K, K) //create tag Value type
 
-    syntax O ::= StExp(K) // expr
-    syntax O ::= StSem(K, K) // st1 ;; st2
-    syntax O ::= StExc(K, K) // exception
+    syntax KItem ::= StExp(K) // expr
+    syntax KItem ::= StSem(K, K) // st1 ;; st2
+    syntax KItem ::= StExc(K, K) // exception
     syntax KItem ::= K "<-" K
-    syntax O ::= TyId(K)
+
+    //type constructs
+    syntax KItem ::= TyId(K)
+    syntax KItem ::= TyConstr(K)
+    syntax KItem ::= TyWithArg(K, K)//type typeConstr
+    syntax KItem ::= TyList(K)//type typeConstr
+    syntax KItem ::= TyPair(K, K)//type typeConstr
+    syntax KItem ::= TyMethods(K, Bool)//typelist, hasExtention? 
+    syntax KItem ::= TyFieldType(K, K)//Field name, type
+    syntax KItem ::= TyFun(K, K, K)//label, type, type
+    syntax KItem ::= TyQuestionMark(K)//labelname
+    syntax KItem ::= TyTilda(K)//labelname
+    syntax KItem ::= TyWithName(K, K)//type, typename 
+    syntax KItem ::= TyListCons(K, K)
+    syntax KItem ::= TySingleMethod(K, K)//name, polytype
+    syntax KItem ::= TyMethodCons(K, K)
+    syntax KItem ::= TyQuantifier(K, K)
 
     syntax AllOps ::= Unit| ConsOp | ImportantOps 
 
     // option types are sometimes used in the AST
     // TODO maybe we should fix this?
-    syntax O ::= "none"
+    syntax KItem ::= "none"
 
-    syntax O ::= tildeLabelPattern(Id, Bool, K, K, K) //name, initial yet, pattern, type, default value.
-    syntax O ::= optionalLabelPattern(Id, Bool, K, K, K) //name, initial yet, pattern, type, default value.
+    syntax KItem ::= tildeLabelPattern(Id, Bool, K, K, K) //name, initial yet, pattern, type, default value.
+    syntax KItem ::= optionalLabelPattern(Id, Bool, K, K, K) //name, initial yet, pattern, type, default value.
 
-    syntax ListFactor ::= funFactor(O,O)
+    syntax ListFactor ::= funFactor(K, K)
     syntax FunList ::= List{ListFactor,","}
-    syntax O ::= wholeFun(FunList)
+    syntax KItem ::= wholeFun(FunList)
 
     syntax Element ::= val(K) [strict]
     syntax ElementResult ::= valValue(K)
