@@ -62,15 +62,38 @@ module OCAML-TRANS
     syntax KItem ::= translationConstr(Constr) [function]
     syntax KItem ::= translationValuePath(ValuePath) [function]
 
- syntax KItem ::= "assign" "(" K ")"
+    syntax KItem ::= "assign" "(" K ")"
 
     //Translation Patterns
-    rule translationPattern(X:ValueName)
-                              => PatternIdentifier(String2Id(#tokenToString(X))) 
-    rule translationPattern(I:IntegerLiteral)
-                              => PatternInteger(String2Int(#tokenToString(I)))
+    /*
+          syntax Pattern ::= ValueName
+		| "_"  [onlyLabel, klabel('wildcard)]
+		| Constant
+		| "(" Pattern ")"                    [bracket]
+                > CharLiteral ".." CharLiteral       [left]
+                > "lazy" Pattern
+		| "(" Pattern ":" TypeExpr ")"       [klabel('patternWithType)]
+		| Constr Pattern                     [klabel('patternWithConstr)]
+                | "`" CapitalizedName Pattern        [klabel('patternWithTag)]
+                | ConsOp TypeConstr                  [klabel('typeConstrPattern)]
+                > Pattern ListOp Pattern             [right,klabel('listOpPattern)]
+                > Pattern SepOp Pattern              [left,klabel('sepOpPattern)]
+                > Pattern "|" Pattern                [left,klabel('patternList)]
+                > Pattern "as" ValueName             [klabel('patternAsName)]
+                | "[" PatternList "]"                [klabel('patternAsList)]
+                | "[" PatternList ";" "]"            [klabel('patternAsList)]
+                | "[|" PatternList "|]"              [klabel('patternAsRecord)]
+                | "[|" PatternList ";" "|]"          [klabel('patternAsRecord)]
+                | "[|" FieldPatternList "|]"         [klabel('patternAsField)]
+                | "[|" FieldPatternList ";" "|]"     [klabel('patternAsField)]
+      */
+
+    rule translationPattern(X:LowerCaseName)
+                              => PatternIdentifier(IdUid(X)) 
+    rule translationPattern((X:OperatorName))
+                              => PatternIdentifier(IdUid(X))
     rule translationPattern(I:Constant)
-                              => PatternConst(I)
+                              => PatternConst(translationExpr(I))
     rule translationPattern(C1:CharLiteral .. C2:CharLiteral)
                               => PatternDoubleChar(C1, C2)
     rule translationPattern('patternList(P:Pattern,, Ps:Pattern))
@@ -80,7 +103,8 @@ module OCAML-TRANS
     rule translationPattern( ( P:Pattern : T:TypeExpr ) )
                               => PaTyc(translationPattern(P), translationTypeExpr(T))
     rule translationPattern('patternWithConstr(C:Constr, P:Pattern))
-                              => PaCom(C, translationPattern(P))
+                              => PaCom(translationConstr(C)
+                                              , translationPattern(P))
     rule translationPattern(` C:CapitalizedName P:Pattern)
                               => PatternTag(C, translationPattern(P))
     rule translationPattern(# Tc:TypeConstr)
@@ -106,6 +130,167 @@ module OCAML-TRANS
     rule translationPatternFieldList(F:Field = P:Pattern ; Fps:FieldPatternList)
                                    => PaList(FieldPattern(F, translationPattern(P)),
                                                translationPatternFieldList(Fps))
+
+
+
+    //translating the type expressions.
+    /*
+    syntax TypeExpr ::= Identifier
+                      | "_" [onlyLabel, klabel('typeAny)]
+                      | TypeConstr
+                      |"(" TypeExpr ")"                        [bracket]
+                      > TypeExpr TypeConstr                    
+                      | "(" TypeExprList ")" TypeConstr        
+                      | TypeExpr "*" TypeExpr                  [left]
+                      | "<" ">"
+                      | "<" ".." ">" 
+                      | "<" MethodTypeList ">"                 [klabel('methodTypeListAsType)]
+                      | "<" MethodTypeList ";" ">"             [klabel('methodTypeListAsType)]
+                      | "<" MethodTypeList ";" ".." ">" 
+                      > ConsOp Field                           [klabel('onlyFieldType)] 
+                      | TypeExpr ConsOp Field                  [klabel('typeFieldType)] 
+                      | "(" TypeExprList ")" ConsOp Field      [klabel('typeListFieldField)] 
+                      > ArrowTypeExpr
+                      | "?" LowerCaseName ":" ArrowTypeExpr
+                      | LowerCaseName ":" ArrowTypeExpr        [klabel('labelAsType)]
+                      > TypeExpr "as" Identifier
+    */
+
+    rule translationTypeExpr(X:Identifier) => TyId(IdUid(X))
+    rule translationTypeExpr(C:TypeConstr) => TyConstr(C)
+    rule translationTypeExpr(E:TypeExpr C:TypeConstr)
+                            => TyWithArg(translationTypeExpr(E), C)
+    rule translationTypeExpr((El:TypeExprList) C:TypeConstr)
+                            => TyWithArg(TyList(translationTypeExprList(El)), C)
+    rule translationTypeExpr(E1:TypeExpr * E2:TypeExpr)
+                            => TyPair(translationTypeExpr(E1), translationTypeExpr(E2))
+    rule translationTypeExpr('methodTypeListAsType(Ml:MethodTypeList))
+                            => TyMethods(translationMethodTypeList(Ml), false)
+    rule translationTypeExpr(< .. >)
+                            => TyMethods(none, true)
+    rule translationTypeExpr(< >)
+                            => TyMethods(none, false)
+    rule translationTypeExpr(<Ml:MethodTypeList ; .. >)
+                            => TyMethods(translationMethodTypeList(Ml), true)
+    rule translationTypeExpr('onlyFieldType(C:ConsOp,, F:Field))
+                            => TyFieldType(F, none)
+    rule translationTypeExpr('typeFieldType(T:TypeExpr,, C:ConsOp,, F:Field))
+                            => TyFieldType(F, translationTypeExpr(T))
+    rule translationTypeExpr('typeListFieldField(Ts:TypeExprList,, C:ConsOp,, F:Field))
+                            => TyFieldType(F, TyList(translationTypeExprList(Ts)))
+    rule translationTypeExpr(T1:TypeExpr -> T2:TypeExpr)
+                          => TyFun(none, translationTypeExpr(T1), translationTypeExpr(T2))
+    rule translationTypeExpr(? A:LowerCaseName : T1:TypeExpr -> T2:TypeExpr)
+                          => TyFun(TyQuestionMark(String2Id(#tokenToString(A))),
+                                 translationTypeExpr(T1), translationTypeExpr(T2))
+    rule translationTypeExpr('labelAsType(A:LowerCaseName,, T1:TypeExpr -> T2:TypeExpr))
+                          => TyFun(TyTilter(String2Id(#tokenToString(A))),
+                                 translationTypeExpr(T1), translationTypeExpr(T2))
+    rule translationTypeExpr(T:TypeExpr as A:Identifier)
+                          => TyWithName(translationTypeExpr(T), translationTypeExpr(A))
+
+    rule translationTypeExprList(T:TypeExpr) => translationTypeExpr(T)
+    rule translationTypeExprList(T:TypeExpr, Ts:TypeExprList)
+                         => TyListCons(translationTypeExpr(T), translationTypeExprList(Ts))
+
+    rule translationMethodTypeList('labelAsPolyType(X:LowerCaseName,, P:PolyTypeExpr))
+                 => TySingleMethod(String2Id(#tokenToString(X)),translationPolyType(P))
+    rule translationMethodTypeList(X:LowerCaseName : P:PolyTypeExpr ; Ms:MethodTypeList)
+                 => TyMethodCons(TySingleMethod(String2Id(#tokenToString(X)),
+                        translationPolyType(P)), translationMethodTypeList(Ms))
+
+    rule translationPolyType(T:TypeExpr) => translationTypeExpr(T)
+    rule translationPolyType(As:IdentifierQuoteList . T:TypeExpr)
+                                          => TyQuantifier(As, translationTypeExpr(T))
+
+
+    /*
+          syntax Constant ::= IntegerLiteral | FloatLiteral | CharLiteral | StringLiteral
+                       | Constr | Bool | Unit | "begin" "end"
+                       | "[]" | "[||]" | "`" CapitalizedName
+    */
+    rule translationExpr(I:IntegerLiteral) => ExInt(String2Int(#tokenToString(I)))
+    rule translationExpr(F:FloatLiteral) => ExFloat(String2Float(#tokenToString(F)))
+    rule translationExpr(B:Bool) => ExBool(B)
+    rule translationExpr(C:CharLiteral) => ExChar(#tokenToString(C))
+    rule translationExpr(S:StringLiteral) => ExStr(#tokenToString(S))
+    rule translationExpr(C:Constr) => translationConstr(C)
+    rule translationExpr(()) => IdUid("()")
+    rule translationExpr(begin end) => IdUid("()")
+    rule translationExpr(begin end) => IdUid("()")
+    rule translationExpr([ ]) => ExNilList
+    rule translationExpr([| |]) => ExNilArray
+    rule translationExpr(` C:CapitalizedName) => ExTypeVal(#tokenToString(C))
+
+    //translate constructors
+    rule translationConstr(C:CapitalizedName) => IdUid(#tokenToString(C))
+    rule translationConstr(C:CapitalizedName . Cs:Constr)
+                        => ConsUId(IdUid(#tokenToString(C)), translationConstr(Cs))
+
+    //translating the valuepath
+    rule translationValuePath(C:LowerCaseName) => IdLid(#tokenToString(C))
+    rule translationValuePath((O:OperatorName )) => IdLid(O)
+    rule translationValuePath(C:CapitalizedName . Cs:ValuePath)
+                        => ConsLId(IdUid(#tokenToString(C)), translationValuePath(Cs))
+
+    //translating Exprs
+    translationExpr(P:PrefixSymbol E:Expr) => ExApp(IdLid(P), translationExpr(E))
+    translationExpr(A:AllowArrowExpr) => ExApp(IdLid(P), translationExpr(E))
+
+
+    //Translation Arguments
+
+    rule translationArg(E:Expr) => translation(E)
+
+    rule translationArg(~ X:LowerCaseName)
+                           => ExprLabelId(String2Id(#tokenToString(X)),
+                                           ExNil)
+    rule translationArg(? X:LowerCaseName)
+                           => ExprOptLabelId(String2Id(#tokenToString(X)),
+                                           ExNil)
+  
+    rule translationArg(~ X:LowerCaseName : E:Expr)
+                           => ExprLabelId(String2Id(#tokenToString(X)),
+                                           translation(E))
+    rule translationArg(? X:LowerCaseName : E:Expr)
+                           => ExprOptLabelId(String2Id(#tokenToString(X)),
+                                           translation(E))
+
+
+    syntax KResult ::= "ExprLabelIdVal" "(" Id "," K ")"
+                     | "ExprOptLabelIdVal" "(" Id "," K ")"
+
+    rule ExprLabelId(X:Id, V:KResult) => ExprLabelIdVal(X:Id, V:KResult)
+    rule ExprOptLabelId(X:Id, V:KResult) => ExprOptLabelIdVal(X:Id, V:KResult)
+  
+/*
+    rule translationParam(~ L:LowerCaseName)
+                           => PatternLabel(String2Id(#tokenToString(L)))
+    rule translationParam(? L:LowerCaseName)
+                           => PatternOptionalLabel(String2Id(#tokenToString(L)))
+*/
+
+
+
+
+//Binary Integer Operator Expressions
+ rule translation('mathTimesOp(E1:Expr,, Bin:MathOp ,, E2:Expr)) => ExApp(ExApp(ExId(IdLid(Bin)), translation(E1)),translation(E2)) 
+ rule translation('mathPlusOp(E1:Expr,, Bin:AllPlusAndMinus ,, E2:Expr)) => ExApp(ExApp(ExId(IdLid(Bin)), translation(E1)),translation(E2)) 
+ rule translation('unaryOp(Un:Minus ,, E1:Expr)) => ExApp(ExApp(ExId(IdLid(Un)), ExInt(0)),translation(E1)) 
+ rule translation('unaryOp(Un:MinusDot ,, E1:Expr)) => ExApp(ExApp(ExId(IdLid(Un)), ExFloat(Int2Float(0,53,11))),translation(E1)) 
+
+// Binary boolean Operator Expressions
+ rule translation('binaryOrOp (B1:Expr,, Or:BinaryOr ,, B2:Expr)) => ExIfe(translation(B1), ExBool(true), translation(B2))
+ rule translation('binaryAndOp (B1:Expr,, Or:BinaryAnd ,, B2:Expr)) => BinaryAnd(translation(B1), translation(B2)) //to be desugared into ExIfe
+rule translation('unaryOp(Un:Not ,, E1:Expr)) => ExApp(ExId(IdLid(Un)),translation(E1))
+
+
+/*
+
+   rule translation(E1:Expr Args:ArgumentList) => ExApp(translation(E), translationArgs(Args))
+   rule translationArgs(A:Argument Args: ArgumentList) => translationArg(A), translationArgs(Args) // List concatenation problem
+   rule translationArgs(.ArgumentList) => .KList
+*/
 
 
     //Translation Parameters
@@ -156,108 +341,6 @@ module OCAML-TRANS
                            => optionalLabelPattern(String2Id(#tokenToString(X)),
                                            false, translationPattern(P)
                                                      ,translationTypeExpr(T), translation(E))
-
-    //Translation Arguments
-
-    rule translationArg(E:Expr) => translation(E)
-
-    rule translationArg(~ X:LowerCaseName)
-                           => ExprLabelId(String2Id(#tokenToString(X)),
-                                           ExNil)
-    rule translationArg(? X:LowerCaseName)
-                           => ExprOptLabelId(String2Id(#tokenToString(X)),
-                                           ExNil)
-  
-    rule translationArg(~ X:LowerCaseName : E:Expr)
-                           => ExprLabelId(String2Id(#tokenToString(X)),
-                                           translation(E))
-    rule translationArg(? X:LowerCaseName : E:Expr)
-                           => ExprOptLabelId(String2Id(#tokenToString(X)),
-                                           translation(E))
-
-
- syntax KResult ::= "ExprLabelIdVal" "(" Id "," K ")" | "ExprOptLabelIdVal" "(" Id "," K ")"
-
-    rule ExprLabelId(X:Id, V:KResult) => ExprLabelIdVal(X:Id, V:KResult)
-    rule ExprOptLabelId(X:Id, V:KResult) => ExprOptLabelIdVal(X:Id, V:KResult)
-  
-/*
-    rule translationParam(~ L:LowerCaseName)
-                           => PatternLabel(String2Id(#tokenToString(L)))
-    rule translationParam(? L:LowerCaseName)
-                           => PatternOptionalLabel(String2Id(#tokenToString(L)))
-*/
-
-
-/*
-    //translating the type expressions.
-    rule translationTypeExpr(X:Identifier) => TyId(String2Id(#tokenToString(X)))
-
-    rule translationTypeExpr(C:TypeConstr) => TyConstr(C)
-    rule translationTypeExpr(E:TypeExpr C:TypeConstr)
-                            => TyWithArg(translationTypeExpr(E), C)
-    rule translationTypeExpr((El:TypeExprList) C:TypeConstr)
-                            => TyWithArg(TyList(translationTypeExprList(El)), C)
-    rule translationTypeExpr(E1:TypeExpr * E2:TypeExpr)
-                            => TyPair(translationTypeExpr(E1), translationTypeExpr(E2))
-    rule translationTypeExpr('methodTypeListAsType(Ml:MethodTypeList))
-                            => TyMethods(translationMethodTypeList(Ml), false)
-    rule translationTypeExpr(< .. >)
-                            => TyMethods(none, true)
-    rule translationTypeExpr(< >)
-                            => TyMethods(none, false)
-    rule translationTypeExpr(<Ml:MethodTypeList ; .. >)
-                            => TyMethods(translationMethodTypeList(Ml), true)
-    rule translationTypeExpr('onlyFieldType(C:ConsOp,, F:Field))
-                            => TyFieldType(F, none)
-    rule translationTypeExpr('typeFieldType(T:TypeExpr,, C:ConsOp,, F:Field))
-                            => TyFieldType(F, translationTypeExpr(T))
-    rule translationTypeExpr('typeListFieldField(Ts:TypeExprList,, C:ConsOp,, F:Field))
-                            => TyFieldType(F, TyList(translationTypeExprList(Ts)))
-    rule translationTypeExpr(T1:TypeExpr -> T2:TypeExpr)
-                          => TyFun(none, translationTypeExpr(T1), translationTypeExpr(T2))
-    rule translationTypeExpr(? A:LowerCaseName : T1:TypeExpr -> T2:TypeExpr)
-                          => TyFun(TyQuestionMark(String2Id(#tokenToString(A))),
-                                 translationTypeExpr(T1), translationTypeExpr(T2))
-    rule translationTypeExpr('labelAsType(A:LowerCaseName,, T1:TypeExpr -> T2:TypeExpr))
-                          => TyFun(TyTilter(String2Id(#tokenToString(A))),
-                                 translationTypeExpr(T1), translationTypeExpr(T2))
-    rule translationTypeExpr(T:TypeExpr as A:Identifier)
-                          => TyWithName(translationTypeExpr(T), translationTypeExpr(A))
-
-    rule translationTypeExprList(T:TypeExpr) => translationTypeExpr(T)
-    rule translationTypeExprList(T:TypeExpr, Ts:TypeExprList)
-                         => TyListCons(translationTypeExpr(T), translationTypeExprList(Ts))
-
-    rule translationMethodTypeList('labelAsPolyType(X:LowerCaseName,, P:PolyTypeExpr))
-                 => TySingleMethod(String2Id(#tokenToString(X)),translationPolyType(P))
-    rule translationMethodTypeList(X:LowerCaseName : P:PolyTypeExpr ; Ms:MethodTypeList)
-                 => TyMethodCons(TySingleMethod(String2Id(#tokenToString(X)),
-                        translationPolyType(P)), translationMethodTypeList(Ms))
-
-    rule translationPolyType(T:TypeExpr) => translationTypeExpr(T)
-    rule translationPolyType(As:IdentifierQuoteList . T:TypeExpr)
-                                          => TyQuantifier(As, translationTypeExpr(T))
-
-*/
-
-
-//Binary Integer Operator Expressions
- rule translation('mathTimesOp(E1:Expr,, Bin:MathOp ,, E2:Expr)) => ExApp(ExApp(ExId(IdLid(Bin)), translation(E1)),translation(E2)) 
- rule translation('mathPlusOp(E1:Expr,, Bin:AllPlusAndMinus ,, E2:Expr)) => ExApp(ExApp(ExId(IdLid(Bin)), translation(E1)),translation(E2)) 
- rule translation('unaryOp(Un:Minus ,, E1:Expr)) => ExApp(ExApp(ExId(IdLid(Un)), ExInt(0)),translation(E1)) 
- rule translation('unaryOp(Un:MinusDot ,, E1:Expr)) => ExApp(ExApp(ExId(IdLid(Un)), ExFloat(Int2Float(0,53,11))),translation(E1)) 
-
-// Binary boolean Operator Expressions
- rule translation('binaryOrOp (B1:Expr,, Or:BinaryOr ,, B2:Expr)) => ExIfe(translation(B1), ExBool(true), translation(B2))
- rule translation('binaryAndOp (B1:Expr,, Or:BinaryAnd ,, B2:Expr)) => BinaryAnd(translation(B1), translation(B2)) //to be desugared into ExIfe
-rule translation('unaryOp(Un:Not ,, E1:Expr)) => ExApp(ExId(IdLid(Un)),translation(E1))
-
-
-
-   rule translation(E1:Expr Args:ArgumentList) => ExApp(translation(E), translationArgs(Args))
-   rule translationArgs(A:Argument Args: ArgumentList) => translationArg(A), translationArgs(Args) // List concatenation problem
-   rule translationArgs(.ArgumentList) => .KList
 
 
 
@@ -354,38 +437,9 @@ rule translationPatternMatching('patternMatchExpr(P:Pattern,, E:Expr)) => McArr(
     rule translation((O:ImportantOps)) => ExId(IdLid(O))
 
 
-    /*
-          syntax Constant ::= IntegerLiteral | FloatLiteral | CharLiteral | StringLiteral
-                       | Constr | Bool | Unit | "begin" "end"
-                       | "[]" | "[||]" | "`" CapitalizedName
-    */
-    rule translationExpr(I:IntegerLiteral) => ExInt(String2Int(#tokenToString(I)))
-    rule translationExpr(F:FloatLiteral) => ExFloat(String2Float(#tokenToString(F)))
-    rule translationExpr(B:Bool) => ExBool(B)
-    rule translationExpr(C:CharLiteral) => ExChar(#tokenToString(C))
-    rule translationExpr(S:StringLiteral) => ExStr(#tokenToString(S))
-    rule translationExpr(C:Constr) => translationConstr(C)
-    rule translationExpr(()) => IdUid("()")
-    rule translationExpr(begin end) => IdUid("()")
-    rule translationExpr(begin end) => IdUid("()")
-    rule translationExpr([ ]) => ExNilList
-    rule translationExpr([| |]) => ExNilArray
-    rule translationExpr(` C:CapitalizedName) => ExTypeVal(#tokenToString(C))
 
-    rule translationConstr(C:CapitalizedName) => IdUid(#tokenToString(C))
-    rule translationConstr(C:CapitalizedName . Cs:Constr)
-                        => ConsUId(IdUid(#tokenToString(C)), translationConstr(Cs))
-
-    //translating the valuepath
-    rule translationValuePath(C:LowerCaseName) => IdLid(#tokenToString(C))
-    rule translationValuePath((O:OperatorName )) => IdLid(O)
-    rule translationValuePath(C:CapitalizedName . Cs:ValuePath)
-                        => ConsLId(IdUid(#tokenToString(C)), translationValuePath(Cs))
-
-    //translating Exprs
-    translationExpr(P:PrefixSymbol E:Expr) => ExApp(IdLid(P), translationExpr(E))
-    translationExpr(A:AllowArrowExpr) => ExApp(IdLid(P), translationExpr(E))
     
+/*
 syntax Expr ::= Constant
                   | ValuePath
                   | "(" Expr ")"                                   [bracket]
@@ -441,7 +495,7 @@ syntax Expr ::= Constant
                   | "{<" InstNameExprList ">}"                  [klabel('instNameExprAsList)]
                   | "{<" InstNameExprList ";" ">}"              [klabel('instNameExprAsList)]
 
-
+*/
 
 
   rule translation(D:Definition) => translationDef(D)
@@ -729,9 +783,9 @@ module OCAML-FUNCTIONS
     rule apply(UId:UId, VS:ElemList) => cons(UId, VS)
 
     syntax KResult ::= "closure" "(" Map "," K ")"
-    syntax KResult ::= closure(Map, K, KList, Klist, K)
+    syntax KResult ::= closure(Map, K, KList, KList, K)
     syntax KItem ::= "reduceClosure" "(" Map "," K ")"
-    syntax KResult
+    //syntax KResult
                     
     //context apply(closure(_, _), _:KList,, HOLE,, _:KList)
 
@@ -760,7 +814,7 @@ syntax KItem ::= matchLabel(K, K, K)
   //  rule <k> labelPattern()
 
    /* rule <k> apply(closure(Env':Map, Matching:K), ExprLabelIdVal(L:Id, C:KResult)) => matchLabel(Matching, L, C) 
-    ~> closure(Env':Map /*+ MapItem(L |-> C)*/, Matching) ~> env(Env) ... </k>
+    ~> closure(Env':Map + MapItem(L |-> C), Matching) ~> env(Env) ... </k>
     <env> Env => Env' </env>
 */
  /*   rule matchLabel(McArr(labelPattern(L:Id, false, Pattern:K, Type:K, Default:K), S:K , E1:K), L, E2:K) => matched(McArr(labelPattern(L, true, Pattern, Type, Default), S, E1))
@@ -783,8 +837,8 @@ syntax KItem ::= matchLabel(K, K, K)
         <k> apply(closure(Env':Map, MC:K), V:KResult, Args:ElemList) => apply(ExMat(V, MC), Args) ~> env(Env) ...</k>
         <env> Env => Env' </env>
 
-syntax KItem ::= matchArgs(Map, K, KList, Klist, K, KList) 
-                | copylabels(KList, Klist, K)
+syntax KItem ::= matchArgs(Map, K, KList, KList, K, KList) 
+                | copylabels(KList, KList, K)
 
     rule <k> apply(closure(Env':Map,NArg1:K, T1:KList, O1:KList, R1:K), Args:KList) => 
         matchArgs(Env':Map,NArg1:K, T1:KList, O1:KList, R1:K, Args:KList) ~> env(Env) ... </k>

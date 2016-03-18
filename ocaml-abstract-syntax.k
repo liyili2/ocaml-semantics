@@ -4,7 +4,7 @@ imports  OCAML-SYNTAX
     syntax O ::= LocationInfo(Int, Int) // start, stop
 
     syntax LId ::= IdLid(K)
-    syntax UId ::= IdUid(String)
+    syntax UId ::= IdUid(K)
 
     syntax Id ::= LId | UId
     syntax O ::= Id
