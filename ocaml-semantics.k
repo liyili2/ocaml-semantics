@@ -55,8 +55,7 @@ module OCAML-TRANS
     syntax KItem ::= translationPatternFieldList(FieldPatternList)
     syntax KItem ::= translationParams(ParameterList, Expr)
     syntax KItem ::= translationParams(ParameterList, K, Expr)
-    syntax KItem ::= translationLetBindings(LetBindingList)
-    syntax KItem ::= translationLetBinding(LetBinding)
+
     syntax KItem ::= translationLetRecBindings(LetBindingList)
     syntax KItem ::= translationToBindingForm(K)
     syntax KItem ::= translationPatternMatching(PatternMatching)
@@ -88,6 +87,10 @@ module OCAML-TRANS
     syntax ElemList ::= getAllMarks(ArgumentList)                      [function]
     syntax ElemList ::= getAllNormals(ArgumentList)                    [function]
     syntax KItem ::= constructApp(K, ElemList)                         [function]
+
+    //translation of let bindings.
+    syntax KItem ::= translationLetBindings(LetBindingList)            [function]
+    syntax KItem ::= translationLetBinding(LetBinding)                 [function]
 
     syntax KItem ::= "assign" "(" K ")"
 
@@ -293,6 +296,55 @@ module OCAML-TRANS
     rule translationAllowExpr(E:Expr . [E':Expr]) => ExApp(ExApp(ExId(IdUid(getStringElement))
                                                         ,translationExpr(E)), translationExpr(E'))
 
+    //translating argument lists with expression.
+    rule constructApp(K:K, .ElemList) => K
+    rule constructApp(K:K, (val(E:K),As:ElemList)) => constructApp(ExApp(K,E), As)
+
+    rule getAllTildas(~ X:LowerCaseName) => val(ExprLabelId(IdUid(X),ExNil))
+    rule getAllTildas(~ X:LowerCaseName : E:Expr)
+                                         => val(ExprLabelId(IdUid(X),translationExpr(E)))
+    rule getAllTildas(? X:LowerCaseName) => .ElemList
+    rule getAllTildas(? X:LowerCaseName : E:Expr) => .ElemList
+    rule getAllTildas(E:Expr) => .ElemList
+    rule getAllTildas('argCon(~ X:LowerCaseName,, As:ArgumentList))
+                                   => val(ExprLabelId(IdUid(X),ExNil)),getAllTildas(As)
+    rule getAllTildas('argCon(~ X:LowerCaseName : E:Expr,, As:ArgumentList))
+                            => val(ExprLabelId(IdUid(X),translationExpr(E))),getAllTildas(As)
+    rule getAllTildas('argCon(? X:LowerCaseName,, As:ArgumentList)) => getAllTildas(As)
+    rule getAllTildas('argCon(? X:LowerCaseName : E:Expr,, As:ArgumentList)) => getAllTildas(As)
+    rule getAllTildas('argCon(E:Expr,, As:ArgumentList)) => getAllTildas(As)
+
+
+    rule getAllMarks(~ X:LowerCaseName) => .ElemList
+    rule getAllMarks(~ X:LowerCaseName : E:Expr) => .ElemList
+    rule getAllMarks(? X:LowerCaseName) => val(ExprOptLabelId(IdUid(X),ExNil))
+    rule getAllMarks(? X:LowerCaseName : E:Expr)
+                                   => val(ExprOptLabelId(IdUid(X),translationExpr(E)))
+    rule getAllMarks(E:Expr) => .ElemList
+    rule getAllMarks('argCon(~ X:LowerCaseName,, As:ArgumentList))
+                                   => getAllMarks(As)
+    rule getAllMarks('argCon(~ X:LowerCaseName : E:Expr,, As:ArgumentList))
+                            => getAllMarks(As)
+    rule getAllMarks('argCon(? X:LowerCaseName,, As:ArgumentList))
+                            => val(ExprOptLabelId(IdUid(X), ExNil)),getAllMarks(As)
+    rule getAllMarks('argCon(? X:LowerCaseName : E:Expr,, As:ArgumentList))
+                     => val(ExprOptLabelId(IdUid(X), translationExpr(E))),getAllMarks(As)
+    rule getAllMarks('argCon(E:Expr,, As:ArgumentList)) => getAllMarks(As)
+
+
+    rule getAllNormals(~ X:LowerCaseName) => .ElemList
+    rule getAllNormals(~ X:LowerCaseName : E:Expr) => .ElemList
+    rule getAllNormals(? X:LowerCaseName) => .ElemList
+    rule getAllNormals(? X:LowerCaseName : E:Expr) => .ElemList
+    rule getAllNormals(E:Expr) => val(translationExpr(E))
+    rule getAllNormals('argCon(~ X:LowerCaseName,, As:ArgumentList))
+                                   => getAllNormals(As)
+    rule getAllNormals('argCon(~ X:LowerCaseName : E:Expr,, As:ArgumentList))
+                            => getAllNormals(As)
+    rule getAllNormals('argCon(? X:LowerCaseName,, As:ArgumentList)) => getAllNormals(As)
+    rule getAllNormals('argCon(? X:LowerCaseName : E:Expr,, As:ArgumentList)) => getAllNormals(As)
+    rule getAllNormals('argCon(E:Expr,, As:ArgumentList)) => val(translationExpr(E)),getAllNormals(As)
+
     //translating Exprs
     rule translationExpr(V:ValuePath) => ExId(translationValuePath(V))
     rule translationExpr(V:Constant) => translationConstant(V)
@@ -365,63 +417,30 @@ module OCAML-TRANS
                                   => constructApp(translationExpr(E),getAllNormals(As))
                       requires getAllTildas(As) ==K .ElemList
                                  andBool getAllMarks(As) ==K .ElemList
-
-    //translating argument lists with expression.
-    rule constructApp(K:K, .ElemList) => K
-    rule constructApp(K:K, (val(E:K),As:ElemList)) => constructApp(ExApp(K,E), As)
-
-    rule getAllTildas(~ X:LowerCaseName) => val(ExprLabelId(IdUid(X),ExNil))
-    rule getAllTildas(~ X:LowerCaseName : E:Expr)
-                                         => val(ExprLabelId(IdUid(X),translationExpr(E)))
-    rule getAllTildas(? X:LowerCaseName) => .ElemList
-    rule getAllTildas(? X:LowerCaseName : E:Expr) => .ElemList
-    rule getAllTildas(E:Expr) => .ElemList
-    rule getAllTildas('argCon(~ X:LowerCaseName,, As:ArgumentList))
-                                   => val(ExprLabelId(IdUid(X),ExNil)),getAllTildas(As)
-    rule getAllTildas('argCon(~ X:LowerCaseName : E:Expr,, As:ArgumentList))
-                            => val(ExprLabelId(IdUid(X),translationExpr(E))),getAllTildas(As)
-    rule getAllTildas('argCon(? X:LowerCaseName,, As:ArgumentList)) => getAllTildas(As)
-    rule getAllTildas('argCon(? X:LowerCaseName : E:Expr,, As:ArgumentList)) => getAllTildas(As)
-    rule getAllTildas('argCon(E:Expr,, As:ArgumentList)) => getAllTildas(As)
+    rule translationExpr(fun 'parameterListExpr(P:Parameter,, .ParameterList,, E:Expr))
+                     => ExFun(McArr(translationParam(P), ExNil, translationExpr(E)))
+    rule translationExpr(fun 'parameterListExpr(P:Parameter,,
+                                        'paramCon(P':Parameter,, Ps:ParameterList),, E:Expr))
+                     => ExFun(McArr(translationParam(P), ExNil,
+                                   translationExpr(fun 'parameterListExpr(P',, Ps,, E:Expr))))
+    rule translationExpr(fun 'paramListWhenExpr(P:Parameter,, .ParameterList,, E1:Expr,, E2:Expr))
+                     => ExFun(McArr(translationParam(P), translationExpr(E1), translationExpr(E2)))
+    rule translationExpr(fun 'paramListWhenExpr(P:Parameter,,
+                                'paramCon(P':Parameter,, Ps:ParameterList),, E1:Expr,, E2:Expr))
+                     => ExFun(McArr(translationParam(P), translationExpr(E1),
+                                   translationExpr(fun 'parameterListExpr(P',, Ps,, E2:Expr))))
+    rule translation(let A:LetBindingList in E:Expr)
+                                       => ExLet(translationLetBindings(A),translation(E))
+    rule translation(let rec A:LetBindingList in E:Expr)
+                                   => ExRec(translationLetBindings(A),translation(E))
 
 
-    rule getAllMarks(~ X:LowerCaseName) => .ElemList
-    rule getAllMarks(~ X:LowerCaseName : E:Expr) => .ElemList
-    rule getAllMarks(? X:LowerCaseName) => val(ExprOptLabelId(IdUid(X),ExNil, false))
-    rule getAllMarks(? X:LowerCaseName : E:Expr)
-                                   => val(ExprOptLabelId(IdUid(X),translationExpr(E), false))
-    rule getAllMarks(E:Expr) => .ElemList
-    rule getAllMarks('argCon(~ X:LowerCaseName,, As:ArgumentList))
-                                   => getAllMarks(As)
-    rule getAllMarks('argCon(~ X:LowerCaseName : E:Expr,, As:ArgumentList))
-                            => getAllMarks(As)
-    rule getAllMarks('argCon(? X:LowerCaseName,, As:ArgumentList))
-                            => val(ExprOptLabelId(IdUid(X), ExNil, false)),getAllMarks(As)
-    rule getAllMarks('argCon(? X:LowerCaseName : E:Expr,, As:ArgumentList))
-                     => val(ExprOptLabelId(IdUid(X), translationExpr(E), false)),getAllMarks(As)
-    rule getAllMarks('argCon(E:Expr,, As:ArgumentList)) => getAllMarks(As)
-
-
-    rule getAllNormals(~ X:LowerCaseName) => .ElemList
-    rule getAllNormals(~ X:LowerCaseName : E:Expr) => .ElemList
-    rule getAllNormals(? X:LowerCaseName) => .ElemList
-    rule getAllNormals(? X:LowerCaseName : E:Expr) => .ElemList
-    rule getAllNormals(E:Expr) => val(translationExpr(E))
-    rule getAllNormals('argCon(~ X:LowerCaseName,, As:ArgumentList))
-                                   => getAllNormals(As)
-    rule getAllNormals('argCon(~ X:LowerCaseName : E:Expr,, As:ArgumentList))
-                            => getAllNormals(As)
-    rule getAllNormals('argCon(? X:LowerCaseName,, As:ArgumentList)) => getAllNormals(As)
-    rule getAllNormals('argCon(? X:LowerCaseName : E:Expr,, As:ArgumentList)) => getAllNormals(As)
-    rule getAllNormals('argCon(E:Expr,, As:ArgumentList)) => val(translationExpr(E)),getAllNormals(As)
 /*
 syntax Expr ::=
                   > "match" Expr "with" PatternMatching            [klabel('matchingExpr)]
                   | "function" PatternMatching
-                  | "fun" MultipleMatching
+
                   | "try" Expr "with" PatternMatching
-                  | "let" LetBindingList "in" Expr
-                  | "let" "rec" LetBindingList "in" Expr
                   | "while" Expr "do" Expr "done"
                   | "for" ValueName "=" Expr "to" Expr "do" Expr "done"
                   | "for" ValueName "=" Expr "downto" Expr "do" Expr "done"
@@ -443,13 +462,125 @@ syntax Expr ::=
 */
 
 
-  rule translation(D:Definition) => translationDef(D)
-  rule translation(E:Expr) => translationExpr(E)
-  rule translation(M:ModuleItemListFactor D:Definition)
+    //defining let bindings and let binding
+    /*
+    syntax LetBinding ::= ValueName ParameterList "=" Expr [klabel('letfunexpr)] 
+                        | Pattern "=" Expr [klabel('patternexpr), prefer]
+                        | ValueName ParameterList ":" TypeExpr "=" Expr
+                        | ValueName ParameterList ":>" TypeExpr "=" Expr
+                        | ValueName ParameterList ":" TypeExpr ":>" TypeExpr "=" Expr
+    syntax LetBindingList ::= LetBinding | LetBinding "and" LetBindingList
+    */
+     rule translationLetBindings(L:LetBinding) => translationLetBinding(L)
+     rule translationLetBindings(L1:LetBinding and L2:LetBindingList)
+                         => BindingAnd(translationLetBinding(L1),translationLetBindings(L2))
+     rule translationLetBinding('patternexpr(X:Pattern,, E:Expr))
+                              => BindingEquality(translationPattern(X), ExNil, ExNil, translation(E))
+     rule translationLetBinding('letfunexpr(X:ValueName,, .ParameterList,, E:Expr))
+                      => BindingEquality(PatternIdentifier(IdUid(X)), ExNil, ExNil,
+                                 translationExpr(E))
+     rule translationLetBinding('letfunexpr(X:ValueName,,
+                                    'paramCon(P:Parameter,, Ps:ParameterList),, E:Expr))
+                      => BindingEquality(PatternIdentifier(IdUid(X)), ExNil, ExNil,
+                                 translationExpr(fun 'parameterListExpr(P,, Ps,, E)))
+     rule translationLetBinding(X:ValueName .ParameterList
+                                                    : T1:TypeExpr = E:Expr)
+                   => BindingEquality(PatternIdentifier(IdUid(X)),
+                       translationTypeExpr(T1), ExNil, translationExpr(E))
+     rule translationLetBinding(X:ValueName 'paramCon(P:Parameter,, Ps:ParameterList)
+                                       : T1:TypeExpr = E:Expr)
+                      => BindingEquality(PatternIdentifier(IdUid(X)),
+                                 translationTypeExpr(T1), ExNil,
+                                 translationExpr(fun 'parameterListExpr(P,, Ps,, E)))
+     rule translationLetBinding(X:ValueName .ParameterList
+                                                           :> T2:TypeExpr = E:Expr)
+                   => BindingEquality(PatternIdentifier(IdUid(X)),
+                       ExNil, translationTypeExpr(T2), translationExpr(E))
+     rule translationLetBinding(X:ValueName 'paramCon(P:Parameter,, Ps:ParameterList)
+                                       :> T2:TypeExpr = E:Expr)
+                      => BindingEquality(PatternIdentifier(IdUid(X)),
+                                 ExNil, translationTypeExpr(T2),
+                                 translationExpr(fun 'parameterListExpr(P,, Ps,, E)))
+     rule translationLetBinding(X:ValueName .ParameterList : T1:TypeExpr
+                                                           :> T2:TypeExpr = E:Expr)
+                   => BindingEquality(PatternIdentifier(IdUid(X)),
+                       translationTypeExpr(T1), translationTypeExpr(T2), translationExpr(E))
+     rule translationLetBinding(X:ValueName 'paramCon(P:Parameter,, Ps:ParameterList)
+                                       : T1:TypeExpr :> T2:TypeExpr = E:Expr)
+                      => BindingEquality(PatternIdentifier(IdUid(X)),
+                                 translationTypeExpr(T1), translationTypeExpr(T2),
+                                 translationExpr(fun 'parameterListExpr(P,, Ps,, E)))
+
+    //Translation Parameters
+    /*
+         syntax Parameter ::= Pattern | LabelName | LabelName ":" Pattern
+                       | "~" "(" LowerCaseName ")"[klabel('parenthesisLabel)]
+                       | "~" "(" LowerCaseName ":" TypeExpr ")"
+                       | "?" "(" LowerCaseName ")" [klabel('parenthesisOptionalLabel)]
+                       | "?" "(" LowerCaseName ":" TypeExpr ")"
+                       | "?" "(" LowerCaseName "=" Expr ")"
+                       | "?" "(" LowerCaseName ":" TypeExpr "=" Expr ")"
+                       | "?" LowerCaseName ":" "(" Pattern ")"
+                                                      [klabel('parameterLabelPattern)]
+                       | "?" LowerCaseName ":" "(" Pattern ":" TypeExpr ")"
+                                                  [klabel('parameterLabelPatternType)]
+                       | "?" LowerCaseName ":" "(" Pattern "=" Expr ")"
+                       | "?" LowerCaseName ":" "(" Pattern ":" TypeExpr "=" Expr ")"
+    */
+    rule translationParam(P:Pattern) => translationPattern(P)
+    rule translationParam(? X:LowerCaseName : (P:Pattern = E:Expr))
+                           => optionalLabelPattern(IdUid(X),
+                                           translationPattern(P), ExNil, translation(E))
+    rule translationParam(? X:LowerCaseName : (P:Pattern : T:TypeExpr = E:Expr))
+                           => optionalLabelPattern(IdUid(X),
+                                translationPattern(P), translationTypeExpr(T), translation(E))
+
+    rule translationParam(? (X:LowerCaseName : T:TypeExpr))
+                           => optionalLabelPattern(IdUid(X),
+                                           ExNil, translationTypeExpr(T), ExNil)
+    rule translationParam(? (X:LowerCaseName = E:Expr))
+                           => optionalLabelPattern(IdUid(X),
+                                           ExNil, ExNil, translation(E))
+    rule translationParam(? (X:LowerCaseName : T:TypeExpr = E:Expr))
+                           => optionalLabelPattern(IdUid(X),
+                                           ExNil, translationTypeExpr(T), translation(E))
+    rule translationParam('parameterLabelPattern(X:LowerCaseName,, P:Pattern))
+                           => optionalLabelPattern(IdUid(X),
+                                           translationPattern(P) ,ExNil ,ExNil)
+    rule translationParam('parameterLabelPatternType(X:LowerCaseName,,
+                                                           P:Pattern,, T:TypeExpr))
+                           => optionalLabelPattern(IdUid(X),
+                                           translationPattern(P), translationTypeExpr(T), ExNil)
+    rule translationParam(? X:LowerCaseName : P:Pattern)
+                           => optionalLabelPattern(IdUid(X),
+                                           translationPattern(P), ExNil, ExNil)
+    rule translationParam(? X:LowerCaseName)
+                           => optionalLabelPattern(IdUid(X),
+                                           ExNil, ExNil, ExNil)
+    rule translationParam('parenthesisOptionalLabel(X:LowerCaseName))
+                           => optionalLabelPattern(IdUid(X),
+                                           ExNil, ExNil, ExNil)
+    rule translationParam(~ X:LowerCaseName)
+                           => tildaLabelPattern(IdUid(X),
+                                           ExNil, ExNil, ExNil)
+    rule translationParam('parenthesisLabel(X:LowerCaseName))
+                           => tildaLabelPattern(IdUid(X),
+                                           ExNil, ExNil, ExNil)
+    rule translationParam(~ X:LowerCaseName : P:Pattern)
+                           => tildaLabelPattern(IdUid(X),
+                                           translationPattern(P), ExNil, ExNil)
+    rule translationParam(~ (X:LowerCaseName : T:TypeExpr))
+                           => tildaLabelPattern(IdUid(X),
+                                           ExNil, translationTypeExpr(T), ExNil)
+
+    //translation of top level
+    rule translation(D:Definition) => translationDef(D)
+    rule translation(E:Expr) => translationExpr(E)
+    rule translation(M:ModuleItemListFactor D:Definition)
                            => StSem(translation(M), translationDef(D))
-  rule translation(M:ModuleItemListFactor ;; D:Definition)
+    rule translation(M:ModuleItemListFactor ;; D:Definition)
                            => StSem(translation(M), translationDef(D))
-  rule translation(M:ModuleItemListFactor ;; E:Expr)
+    rule translation(M:ModuleItemListFactor ;; E:Expr)
                            => StSem(translation(M), translationExpr(E))
 
 /*

@@ -39,7 +39,7 @@ imports  OCAML-SYNTAX
     syntax KItem ::= BinaryOr(K,K) [seqstrict]
 
     syntax KItem ::= BindingAnd(K, K) [strict]
-    syntax KItem ::= BindingEquality(K, K) // pat = v
+    syntax KItem ::= BindingEquality(K, K, K, K) // pat, type, supertype, v
 
     syntax KItem ::= RbEq(K, K) [strict(2), hybrid] // x = v
     syntax KItem ::= RbSem(K, K) [strict, superheat, hybrid]
@@ -58,7 +58,7 @@ imports  OCAML-SYNTAX
     syntax KItem ::= ExAss(K, K) [strict(2)] // e1 := e2
     syntax KItem ::= ExAcc(K, K) [strict(1)] // e1.e2 (access)
     syntax KItem ::= ExLet(K, K)
-    syntax KItem ::= ExLetRec(K, K)
+    //syntax KItem ::= ExLetRec(K, K)
     syntax KItem ::= ExTry(K, K)
     syntax KItem ::= ExRec(K, K) [strict(1)]
     syntax KItem ::= ExConstr(K) //constructors as expressions.
@@ -69,7 +69,7 @@ imports  OCAML-SYNTAX
     syntax KItem ::= "ExNil"
     syntax KItem ::= ExId(K) // id
     syntax KItem ::= ExprLabelId(UId, K) [strict(2)] // name , value 
-    syntax KItem ::= ExprOptLabelId(Id, K, Bool) [strict(2)]// name , value, isInitialized
+    syntax KItem ::= ExprOptLabelId(Id, K) [strict(2)]// name , value
     syntax KItem ::= ExBool(Bool)
     syntax KItem ::= ExInt(Int)
     syntax KItem ::= ExFloat(Float)
@@ -109,8 +109,8 @@ imports  OCAML-SYNTAX
     // TODO maybe we should fix this?
     syntax KItem ::= "none"
 
-    syntax KItem ::= tildeLabelPattern(Id, Bool, K, K, K) //name, initial yet, pattern, type, default value.
-    syntax KItem ::= optionalLabelPattern(Id, Bool, K, K, K) //name, initial yet, pattern, type, default value.
+    syntax KItem ::= tildaLabelPattern(Id, K, K, K) //name, pattern, type, default value.
+    syntax KItem ::= optionalLabelPattern(Id, K, K, K) //name, pattern, type, default value.
 
     syntax ListFactor ::= funFactor(K, K)
     syntax FunList ::= List{ListFactor,","}

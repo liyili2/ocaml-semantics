@@ -258,8 +258,9 @@ module OCAML-SYNTAX
     syntax PatternMatching ::= "|" PatternMatchs | PatternMatchs
     syntax MultipleMatching ::= Parameter ParameterList "->" Expr      [klabel('parameterListExpr)]
                               | Parameter ParameterList "when" Expr "->" Expr
+                                                                       [klabel('paramListWhenExpr)]
 
-    syntax ParameterList ::= List{Parameter,""}
+    syntax ParameterList ::= List{Parameter,""}                        [klabel('paramCon)]
     syntax Parameter ::= Pattern | LabelName | LabelName ":" Pattern
                        | "~" "(" LowerCaseName ")"[klabel('parenthesisLabel)]
                        | "~" "(" LowerCaseName ":" TypeExpr ")"
