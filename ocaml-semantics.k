@@ -795,7 +795,7 @@ module OCAML-LET-LETREC
         <k> group(_, _) ~> (BindingAnd(Binding1:K, Binding2:K) => Binding1 ~> Binding2) ...</k>
 
     rule
-        <k> group(Exp1:K, Pat1:K) ~> BindingEquality(Pat2:K, Exp2:K)
+        <k> group(Exp1:K, Pat1:K) ~> BindingEquality(Pat2:K, _:K, _:K, Exp2:K)
             => group(ExCom(Exp1, Exp2), PaCom(Pat1, Pat2))
         ...</k>
 
@@ -814,7 +814,7 @@ module OCAML-LET-LETREC
     syntax KItem ::= "assignTypes" "(" K ")"
 
 
-    context assign(BindingEquality(_, HOLE))
+    context assign(BindingEquality(_, _, _, HOLE))
 
     rule
         <k> ExLetRec(Binding:K, Exp:K) => recbind(Binding) ~> assign(Binding) ~> Exp ~> env(Env) ...</k>
@@ -827,12 +827,12 @@ module OCAML-LET-LETREC
         <k> assign(BindingAnd(Binding1:K, Binding2:K)) => assign(Binding1) ~> assign(Binding2) ...</k>
 
     rule
-        <k> recbind(BindingEquality(PatternIdentifier(X:Id), _)) => . ...</k>
+        <k> recbind(BindingEquality(PatternIdentifier(X:Id), _:K, _:K, _)) => . ...</k>
         <env> Env:Map => Env[X <- Location(N)] </env>
         <nextLocation> N:Int => N +Int 1 </nextLocation>
 
     rule
-        <k> assign(BindingEquality(PatternIdentifier(X:Id), V:KResult)) => .K ...</k>
+        <k> assign(BindingEquality(PatternIdentifier(X:Id), _:K, _:K, V:KResult)) => .K ...</k>
         <env>... X |-> L:Location ...</env>
         <store>... .Map => L |-> V ...</store>
 
@@ -1264,7 +1264,7 @@ endmodule
 module OCAML-SEMANTICS
     imports OCAML-TRANS
     imports OCAML-INCLUDE
-/*
+
     imports OCAML-UNIT
     imports OCAML-ARITHMETIC
     imports OCAML-BOOLEANS
@@ -1287,5 +1287,5 @@ module OCAML-SEMANTICS
     imports OCAML-INIT
 
     imports OCAML-CLEANUP
-*/
+
 endmodule
