@@ -46,7 +46,7 @@ imports  OCAML-SYNTAX
 
 
     syntax KItem ::= ExApp(K, K) // e1 e2
-    syntax KItem ::= ExAppList(K, K, K, K) // (e,tildas, ?s, normals)
+    syntax KItem ::= ExAppList(K, K, K, K) // (e, arglist, tildas, ?s, normals)
     //syntax KItem ::= ExAppTildas(K, K) // (e,tildas)
     syntax KItem ::= ExTup(K) [strict, hybrid]
     syntax KItem ::= ExCom(K, K) [strict, hybrid]

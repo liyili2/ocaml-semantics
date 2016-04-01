@@ -117,6 +117,11 @@ module OCAML-TRANS
                 | "[|" FieldPatternList "|]"         [klabel('patternAsField)]
                 | "[|" FieldPatternList ";" "|]"     [klabel('patternAsField)]
       */
+    
+    rule translation(fun P:Pattern)
+
+
+
     rule translationPattern(X:LowerCaseName)
                               => PatternIdentifier(IdUid(X)) 
     rule translationPattern('operatorAsName(X:OperatorName))
@@ -644,6 +649,11 @@ module OCAML-APPLICATION
     imports OCAML-SYNTAX
     imports OCAML-ABSTRACT-SYNTAX
 
+    syntax KItem ::= apply(K, ElemList, ElemList, ElemList) [strict]
+
+
+    rule ExAppList(E:K, Ts:ElemList, Ms:ElemList, Ns:ElemList) => apply(E, val(Ts), val(Ms), val(Ns))
+
 /*
     syntax KItem ::= apply(K, KList) [strict]
     syntax KItem ::= apply(Map, K, KList) [strict]
@@ -653,6 +663,9 @@ module OCAML-APPLICATION
 
  //   rule ExApp(K1:K, K2:KList) => apply(K1,val(K2)) // what does val do?
  //rule ExApp(K1:K, K2:KList) => apply(K1,K2)
+
+    r
+
 
     rule flattenApp(ExApp(K:K, Arg:K), Args:ElemList) => flattenApp(K, val(Arg), Args)
     rule flattenApp(PaApp(K:K, Arg:K), Args:ElemList) => flattenApp(K, val(Arg), Args)
@@ -719,7 +732,7 @@ module OCAML-ARITHMETIC
 
     rule ExInt(I:Int) => I
 
-    syntax External
+    syntax External //does not need specification of number of arguments
       ::= "%addint"
         | "%subint"
         | "%mulint"
@@ -762,10 +775,10 @@ module OCAML-CONTROL-FLOW
     rule ExIfe(true, Exp:K, _) => Exp
     rule ExIfe(false, _, Exp:K) => Exp
 
-    rule
+    rule //???? - Sequencing
         <k> ExSeq(K:K) => K ...</k>
 
-    rule
+    rule // ??? - and Sem?
         <k> ExSem(V:KResult, Exp:K) => Exp ...</k>
 
 endmodule
@@ -784,7 +797,7 @@ module OCAML-LET-LETREC
     syntax KItem ::= "group" "(" K "," K ")"
     syntax KItem ::= "letbody" "(" K ")"
 
-    // TODO this can probably be better
+    // !!!!!!!!!!!!!!!!!! REWRITE !!!!!!!!!!!!!!!!!!!!!!
     rule
         <k> ExLet(Binding:K, Exp:K)
             => group(ExId(IdUid("()")), PatternIdentifier(IdUid("()")))
@@ -869,9 +882,22 @@ module OCAML-FUNCTIONS
 
    rule <k> funlabel(NArg1:K, T1:KList, O1:KList, R1:K) => closure(Env, NArgs1, T1, O1, R1)  ... </k>
         <env> Env:Map </env>   
+   
 
+   rule <k> apply(closure(Env', MC:K), T:K Ts:ElemList, Ms:ElemList, Ns:ElemList) => 
+              replace(closure(Env', MC:K), T) ~> apply(closure(Env', MC:K), Ts:ElemList, Ms:ElemList, Ns:ElemList) ... </k>
+     <env> Env => Env' </env>
 
+   rule replace(closure(Env', McArr(tildaLabelPattern(IdUid(X:K),
+                                           ExNil, ExNil, Rest:K))), ExprLabelId(IdUId(X), E:K)) => closurereduced(Env' + X |-> E, Rest:K) 
+// how to handle environment
+   rule replace(closure(Env', McArr(/*not tildaLabelPattern */, _, _, Rest:K)), ExprLabelId(IdUId(X), E:K)) => replace(Rest,ExprLabelId(IdUId(X), E:K))
+     ~> closure(Env', McArr(/*not tildaLabelPattern */))
 
+   syntax KItem ::= closurereduced(Map, K)
+
+   rule closurereduced(Env, E) ~> apply(closure(Env', MC:K), Ts:ElemList, Ms:ElemList, Ns:ElemList) => 
+            apply(closure(Env, E), Ts:ElemList, Ms:ElemList, Ns:ElemList) 
 
   /*  rule
         <k> apply(closure(Env':Map, MC:K), V:KResult) => ExMat(V, MC) ~> env(Env) ...</k>
@@ -979,7 +1005,7 @@ module OCAML-RECORDS
         )
 
     syntax Map ::= getFields(K)   [function]
-    rule getFields(RbSem(R1:K, R2:K)) => getFields(R1) getFields(R2)
+    rule getFields(RbSem(R1:K, R2:K)) => getFields(R1) getFields(R2) // need to study fields
     rule getFields(RbEq(Id:Id, K:K)) => Id |-> K
 
     rule
@@ -1032,7 +1058,7 @@ module OCAML-PATTERNS
 
 
 
-    rule PatternInteger(I:Int) <- I => .K [anywhere]
+    rule PatternInteger(I:Int) <- I => .K [anywhere] // where is Pattern <- K defined?
 
 
     rule
@@ -1180,9 +1206,8 @@ module OCAML-MATCHING
 endmodule
 
 module OCAML-TOP-LEVEL
-    //@ Top-level phrases in an OCaml module (also known as structure items?)
+    //@ Top-level phrases in an OCaml module (also known as structure items) are covered in the translation
     imports OCAML-INCLUDE
-
     rule
         <k> StSem(K1:K, K2:K) => K1 ~> K2 ...</k>
 
@@ -1223,7 +1248,7 @@ module OCAML-INIT
     imports OCAML-IO
 
     syntax KItem ::= preassign(Map)
-
+// translation of binary operators
     // TODO eventually this will go in a separate Pervasives module
     rule
         initEnv => preassign( IdLid(+) |-> external(%addint, 2)
