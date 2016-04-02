@@ -598,6 +598,8 @@ rule BinaryAnd(true, false) => ExBool(false)
 
     syntax KItem ::= substitution(K, K, K)  [function]//type id, type expr, to expr
     syntax List ::= substitutionInList(K,K, List)     [function]
+    syntax Map ::= substitutionInMap(K, K, Map)       [function]
+                 | substitutionInMapList(List, Map)   [function]
 
     rule substitution(A:K, B:K, A) => B
          requires getKLabel(A) ==KLabel 'TyId
@@ -617,6 +619,13 @@ rule BinaryAnd(true, false) => ExBool(false)
     rule substitutionInList(A:K, B:K, ListItem(unifier(C:K, D:K)) L:List)
                  => ListItem(unifier(substitution(A,B,C), substitution(A,B,D))) substitutionInList(A, B, L)
 
+    rule substitutionInMap(A:K, B:K, .Map) => .Map
+    rule substitutionInMap(A:K, B:K, (X:K |-> C:K M:Map))
+                 => X |-> substitution(A, B, C) substitutionInMap(A, B, M)
+    rule substitutionInMapList(.List, M:Map) => M
+    rule substitutionInMapList(ListItem(unifier(A:K, B:K)) L:List, M:Map)
+                 => substitutionInMapList(L, substitutionInMap(A, B, M))
+
     syntax KItem ::= "badState"
     syntax List ::= decompose(KList, KList) [function]
     rule decompose(.KList, .KList) => .List
@@ -627,6 +636,8 @@ rule BinaryAnd(true, false) => ExBool(false)
 
     rule <k> toUnify => .K ...</k>
          <unifiers> .List </unifiers>
+         <unfiySubst> L':List </unfiySubst>
+         <types> TEnv:Map => substitutionInMapList(L', TEnv) </types>
 
     rule <k> toUnify ...</k>
          <unifiers> (ListItem(unifier(A:K, TyId(B:K)))
@@ -649,11 +660,14 @@ rule BinaryAnd(true, false) => ExBool(false)
          <unfiySubst> L':List => substitutionInList(TyId(B:K), A, L') </unfiySubst>
          requires A =/=K TyId(B)
 
-    rule typeInfer(A:K) => typeInferInExpr(A, !X:Id)
+    rule <k> typeInfer(A:K) => typeInferInExpr(TEnv, A, !X:Id) ...</k>
+         <types> TEnv:Map </types>
          requires getKLabel(A) =/=KLabel 'StSem
-    rule typeInfer(StSem(A:K, B:K)) => typeInferInExpr(A, !X:Id) ~> typeInfer(B)
+    rule <k> typeInfer(StSem(A:K, B:K)) => typeInferInExpr(TEnv, A, !X:Id) ~> typeInfer(B) ...</k>
+         <types> TEnv:Map </types>
 
-    rule <k>typeInferInExpr(ExInt(I:Int), X:Id)
+/*
+    rule <k>typeInferInExpr(Env:Map, ExInt(I:Int), X:Id)
                  => resultType(unification(getFirst(L ListItem(unifier(X, int))))) ...</k>
          <unifiers> L:List (.List  => ListItem(unifier(X, int))) </unifiers>
     rule <k> typeInferInExpr(ExId(A:Id), X:Id) => resultType(unification(X)) ...</k>
@@ -663,9 +677,44 @@ rule BinaryAnd(true, false) => ExBool(false)
          <stdout>... .List => ListItem("Error: Unbound value a") </stdout>
          <types> M:Map </types>
          requires notBool (A in keys(M))
-    rule <k> typeInferInExpr(ExFun(McArr(Var:K, ExNil, E:K)), Tau:Id) => typeInferInExpr(E, !Beta:Id) ...</k>
-         <types> M:Map (.Map => Var |-> !Alpha:Id) </types>
-         <unifiers> L:List (.List => ListItem(unifier(Tau, TyFun(none, !Alpha:Id, !Beta:Id)))) </unifiers>
+*/
+
+
+    rule <k> typeInfer(A:K) => typeInferInExpr(TEnv, A, !X:Id) ~> toUnify ...</k>
+         <types> TEnv:Map </types>
+         requires getKLabel(A) =/=KLabel 'StSem
+    rule <k> typeInfer(StSem(A:K, B:K)) => typeInferInExpr(TEnv, A, !X:Id) ~> toUnify ~> typeInfer(B) ...</k>
+         <types> TEnv:Map </types>
+    rule <k> (resultType(L:List) => .K) ~> toUnify ...</k>
+         <unifiers> _:List => L </unifiers>
+
+
+    rule typeInferInExpr(TEnv:Map, ExInt(I:Int), X:K)
+                 => resultType(ListItem(unifier(X, int)))
+
+    //deal with ids
+    rule typeInferInExpr(TEnv:Map, ExId(A:Id), X:K) => resultType(ListItem(unifier(X,TEnv[A])))
+         requires A in keys(TEnv)
+    rule <k> typeInferInExpr(TEnv:Map, ExId(A:Id), X:K) => resultType(ListItem(unifier(X,T))) ...</k>
+         <types>... A |-> T:K ...</types>
+         requires notBool A in keys(TEnv)
+
+    //translation of fun
+    rule typeInferInExpr(TEnv:Map, ExFun(McArr(tildaLabelPattern(X:Id, E1:K, T:K, E3:K), ExNil, E:K)), Tau:K)
+                       => typeInferInExpr(TEnv[X <- T], E, TyId(!Beta:Id))
+                              ~> typeInferInExpr(TEnv, TyFun(TyTilda(X), T, TyId(!Beta)), Tau)
+         requires T =/=K 'ExNil(.KList)
+
+    rule typeInferInExpr(TEnv:Map, ExFun(McArr(tildaLabelPattern(X:Id, E1:K, ExNil, E3:K), ExNil, E:K)), Tau:K)
+                       => typeInferInExpr(TEnv[X <- TyId(!Alpha:Id)], E, TyId(!Beta:Id))
+                              ~> typeInferInExpr(TEnv, TyFun(TyTilda(X), TyId(!Alpha), TyId(!Beta)), Tau)
+
+    rule typeInferInExpr(TEnv:Map, ExFun(McArr(Var:K, ExNil, E:K)), Tau:K)
+                       => typeInferInExpr(TEnv[Var <- TyId(!Alpha:Id)], E, TyId(!Beta:Id))
+                              ~> typeInferInExpr(TEnv, TyFun(none, TyId(!Alpha), TyId(!Beta)), Tau)
+
+    rule resultType(L:List) ~> typeInferInExpr(TEnv:Map , TyFun(X:K, Alpha:K, Beta:K), Tau:K)
+                     => resultType(L ListItem(unifier(Tau, TyFun(X:K, Alpha, Beta))))
 
 endmodule
 
