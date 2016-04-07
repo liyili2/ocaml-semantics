@@ -588,12 +588,89 @@ syntax Expr ::=
     rule translation(M:ModuleItemListFactor ;; E:Expr)
                            => StSem(translation(M), translationExpr(E))
 
+    syntax KItem ::= flipOrder(K, K)    [function]
+    rule flipOrder(StSem(A:K, B:K), .K) =>  flipOrder(A, B)
+    rule flipOrder(StSem(A:K, B:K), C:K) =>  flipOrder(A, StSem(B, C))
+          when B =/=K .K
+    rule flipOrder(A, .K) => A
+    rule flipOrder(A, C:K) => StSem(A, C)    [owise]
 /*
 rule BinaryAnd(true, true) => ExBool(true) 
 rule BinaryAnd(false, _) => ExBool(false)
 rule BinaryAnd(true, false) => ExBool(false)
 
 */
+
+    syntax KItem ::= substitution(K, K, K)  [function]//type id, type expr, to expr
+    syntax List ::= substitutionInList(K,K, List)     [function]
+
+    rule substitution(A:K, B:K, A) => B
+         requires getKLabel(A) ==KLabel 'TyId
+    rule substitution(A:K, B:K, C:SimpleTypeKItem) => C
+    rule substitution(A:K, B:K, none) => none
+    rule substitution(A:K, B:K, TyList(C:K)) => TyList(substitution(A, B, C))
+    rule substitution(A:K, B:K, TyPair(C:K, D:K))
+                      => TyPair(substitution(A, B, C), substitution(A, B, D))
+    rule substitution(A:K, B:K, TyFun(C:K, D:K, E:K))
+                      => TyFun(C, substitution(A, B, D), substitution(A, B, E))
+    rule substitution(A:K, B:K, TyConstr(C:K)) => TyConstr(substitution(A, B, C))
+    rule substitution(A:K, B:K, TyTilda(C:K)) => TyTilda(C)
+    rule substitution(A:K, B:K, TyQuestionMark(C:K)) => TyQuestionMark(C)
+    rule substitution(A:K, B:K, TyListCons(C:K, D:K))
+                         => TyListCons(substitution(A, B, C), substitution(A, B, D))
+    rule substitutionInList(A:K, B:K, .List) => .List
+    rule substitutionInList(A:K, B:K, ListItem(unifier(C:K, D:K)) L:List)
+                 => ListItem(unifier(substitution(A,B,C), substitution(A,B,D))) substitutionInList(A, B, L)
+
+    syntax KItem ::= "badState"
+    syntax List ::= decompose(KList, KList) [function]
+    rule decompose(.KList, .KList) => .List
+    rule decompose(A:K,, Kl:KList, B:K,, Kl':KList)
+               => ListItem(unifier(A, B)) decompose(Kl, Kl')
+    rule decompose(A:KList , B:KList)
+               => ListItem(badState)
+
+    rule <k> toUnify => .K ...</k>
+         <unifiers> .List </unifiers>
+
+    rule <k> toUnify ...</k>
+         <unifiers> (ListItem(unifier(A:K, TyId(B:K)))
+                        => ListItem(unifier(TyId(B), A))) L:List </unifiers>
+         <unfiySubst> L':List </unfiySubst>
+         requires getKLabel(A) =/=KLabel 'TyId
+
+    rule <k> toUnify ...</k>
+         <unifiers> (ListItem(unifier(A:K, A:K)) => .List) L:List </unifiers>
+         <unfiySubst> L':List </unfiySubst>
+
+    rule <k> toUnify ...</k>
+         <unifiers> (ListItem(unifier(F:KLabel(Kl:KList), F(Kl':KList)))
+                                    => decompose(Kl, Kl')) L:List </unifiers>
+         <unfiySubst> L':List </unfiySubst>
+
+    rule <k> toUnify ...</k>
+         <unifiers> (ListItem(unifier(TyId(B:K), A:K)) => .List)
+                    (L:List => substitutionInList(TyId(B:K), A, L)) </unifiers>
+         <unfiySubst> L':List => substitutionInList(TyId(B:K), A, L') </unfiySubst>
+         requires A =/=K TyId(B)
+
+    rule typeInfer(A:K) => typeInferInExpr(A, !X:Id)
+         requires getKLabel(A) =/=KLabel 'StSem
+    rule typeInfer(StSem(A:K, B:K)) => typeInferInExpr(A, !X:Id) ~> typeInfer(B)
+
+    rule <k>typeInferInExpr(ExInt(I:Int), X:Id)
+                 => resultType(unification(getFirst(L ListItem(unifier(X, int))))) ...</k>
+         <unifiers> L:List (.List  => ListItem(unifier(X, int))) </unifiers>
+    rule <k> typeInferInExpr(ExId(A:Id), X:Id) => resultType(unification(X)) ...</k>
+         <types>... A |-> T:K ...</types>
+         <unifiers> L:List (.List => ListItem(unifier(X, T))) </unifiers>
+    rule <k> typeInferInExpr(ExId(A:Id), X:Id) ~> K => .K </k>
+         <stdout>... .List => ListItem("Error: Unbound value a") </stdout>
+         <types> M:Map </types>
+         requires notBool (A in keys(M))
+    rule <k> typeInferInExpr(ExFun(McArr(Var:K, ExNil, E:K)), Tau:Id) => typeInferInExpr(E, !Beta:Id) ...</k>
+         <types> M:Map (.Map => Var |-> !Alpha:Id) </types>
+         <unifiers> L:List (.List => ListItem(unifier(Tau, TyFun(none, !Alpha:Id, !Beta:Id)))) </unifiers>
 
 endmodule
 
@@ -608,10 +685,13 @@ module OCAML-CONFIGURATION
 
     configuration
         <T>
-            <k color="LightGreen"> initEnv ~> translation($PGM:ModuleItemListFactor) </k>
+            <k color="LightGreen"> initEnv ~> typeInfer(flipOrder(translation($PGM:ModuleItemListFactor), .K)) </k>
             <env color="LightSkyBlue"> .Map </env>
             <store color="LightSteelBlue"> .Map </store>
             <tenv color="GreenYellow"> .Map </tenv>
+            <types color="GreenYellow"> .Map </types>
+            <unifiers color="GreenYellow"> .List </unifiers>
+            <unfiySubst color="GreenYellow"> .List </unfiySubst>
             <xstack color="LightSlateBlue"> .K </xstack>
             <nextLocation> 0 </nextLocation>
             <assign> .Map </assign>
@@ -636,6 +716,7 @@ module OCAML-CONFIGURATION
                 </patternAttempt>
             </patternAttempts>
             <output> "" </output>
+            <stdout stream="stdout"> .List </stdout>
         </T>
         <result multiplicity="?" color="DodgerBlue">
             <exprResult> .K </exprResult>
@@ -798,6 +879,9 @@ module OCAML-LET-LETREC
     syntax KItem ::= "letbody" "(" K ")"
 
     // !!!!!!!!!!!!!!!!!! REWRITE !!!!!!!!!!!!!!!!!!!!!!
+
+    // TODO this can probably be better
+/*
     rule
         <k> ExLet(Binding:K, Exp:K)
             => group(ExId(IdUid("()")), PatternIdentifier(IdUid("()")))
@@ -848,7 +932,7 @@ module OCAML-LET-LETREC
         <k> assign(BindingEquality(PatternIdentifier(X:Id), _:K, _:K, V:KResult)) => .K ...</k>
         <env>... X |-> L:Location ...</env>
         <store>... .Map => L |-> V ...</store>
-
+*/
 
  //   rule type T:TypeDef Ts:TypeDefList   =>  assignType(T) ~>  assignTypes(Ts)
   //  rule assignTypes(.TypeDefList) => . 
@@ -861,7 +945,7 @@ endmodule
 module OCAML-FUNCTIONS
     imports SUBSTITUTION
     imports OCAML-INCLUDE
-
+/*
     rule
         <k> ExId(UId:UId) => UId ...</k>
 
@@ -891,13 +975,16 @@ module OCAML-FUNCTIONS
    rule replace(closure(Env', McArr(tildaLabelPattern(IdUid(X:K),
                                            ExNil, ExNil, Rest:K))), ExprLabelId(IdUId(X), E:K)) => closurereduced(Env' + X |-> E, Rest:K) 
 // how to handle environment
-   rule replace(closure(Env', McArr(/*not tildaLabelPattern */, _, _, Rest:K)), ExprLabelId(IdUId(X), E:K)) => replace(Rest,ExprLabelId(IdUId(X), E:K))
-     ~> closure(Env', McArr(/*not tildaLabelPattern */))
-
+ /*  rule replace(closure(Env', McArr(not tildaLabelPattern  , _, _, Rest:K)), ExprLabelId(IdUId(X), E:K)) => replace(Rest,ExprLabelId(IdUId(X), E:K))
+     ~> closure(Env', McArr(not tildaLabelPattern ))
+*/
    syntax KItem ::= closurereduced(Map, K)
 
    rule closurereduced(Env, E) ~> apply(closure(Env', MC:K), Ts:ElemList, Ms:ElemList, Ns:ElemList) => 
             apply(closure(Env, E), Ts:ElemList, Ms:ElemList, Ns:ElemList) 
+
+*/
+
 
   /*  rule
         <k> apply(closure(Env':Map, MC:K), V:KResult) => ExMat(V, MC) ~> env(Env) ...</k>
@@ -905,7 +992,7 @@ module OCAML-FUNCTIONS
 
         when getKLabel(V) =/=KLabel 'ExprLabelIdVal
 */
-    rule closure(_, K:KResult) => K
+    //TODO: rule closure(_, K:KResult) => K
 
 
 syntax KItem ::= matchLabel(K, K, K) 
@@ -933,17 +1020,20 @@ syntax KItem ::= matchLabel(K, K, K)
     rule reduceClosure(Env, McArr(P:K, S:K, E1:K)) => 
     closure(Env, McArr(P, S:K, E1:K))   //where P =/= labelPattern
 */
+
+/*ToDo
     rule
         <k> apply(closure(Env':Map, MC:K), V:KResult, Args:ElemList) => apply(ExMat(V, MC), Args) ~> env(Env) ...</k>
         <env> Env => Env' </env>
-
+*/
 syntax KItem ::= matchArgs(Map, K, KList, KList, K, KList) 
                 | copylabels(KList, KList, K)
 
+/*TODO
     rule <k> apply(closure(Env':Map,NArg1:K, T1:KList, O1:KList, R1:K), Args:KList) => 
         matchArgs(Env':Map,NArg1:K, T1:KList, O1:KList, R1:K, Args:KList) ~> env(Env) ... </k>
 <env> Env => Env' </env>
-
+*/
 
 
 
@@ -1057,9 +1147,11 @@ module OCAML-PATTERNS
     syntax KItem ::= "pattern-failure" "(" K "," K ")"
 
 
-
     rule PatternInteger(I:Int) <- I => .K [anywhere] // where is Pattern <- K defined?
 
+/*TODO: fix the syntax
+    rule PatternInteger(I:Int) <- I => .K [anywhere]
+*/
 
     rule
         <patterns> (PatternIdentifier(X:Id) <- K:K) => .K ...</patterns>
@@ -1073,18 +1165,19 @@ module OCAML-PATTERNS
 
     rule PaTup(Pat:K) <- ExTup(Exp:K) => Pat <- Exp [anywhere]
 
-
+/*
     rule PaCom(Pat1:K, Pat2:K) <- ExComValue(Exp1:K, Exp2:K) =>
                (Pat1 <- Exp1)
                ~> (Pat2 <- Exp2) [anywhere]
-
+*/
+/*TODO:
     rule ((PaApp(Pat1:K, Pat2:K) => flattenApp(PaApp(Pat1, Pat2), .ElemList)) <- _)
          [anywhere]
 
     rule apply(Pat:K, Pats:ElemList) <- cons(UId:UId, Args:ElemList)
             => (Pat <- UId) ~> zip<-(Pats, Args)
          [anywhere]
-
+*/
     syntax KItem ::= "zip<-" "(" ElemList "," ElemList ")" [function]
     rule zip<-(valValue(Pat:K), Pats:ElemList, valValue(Arg:K), Args:ElemList)
                   => (Pat <- Arg) ~> zip<-(Pats, Args)
@@ -1152,12 +1245,13 @@ module OCAML-MATCHING
             ...</matchAnalysis>
         )
 
+/*TODO:
     rule
         <k> matching => assigning ~> K ~> env(Env) ...</k>
         <env> Env:Map </env>
         <assign> _ => Subst </assign>
         <matchK> match-success(K:K, Subst:Map) => . </matchK>
-
+*/
     syntax KItem
       ::= "match-failure"
         | "match-success" "(" K "," Map ")"
@@ -1232,11 +1326,11 @@ module OCAML-HELPERS
     rule
         <k> assigning => .K ...</k>
         <assign> .Map </assign>
-
+/*TODO: fixed the syntax
     rule
         <k> V:KResult ~> (env(Env:Map) => .K) ...</k>
         <env> _ => Env </env>
-
+*/
 endmodule
 
 module OCAML-INIT
@@ -1250,6 +1344,7 @@ module OCAML-INIT
     syntax KItem ::= preassign(Map)
 // translation of binary operators
     // TODO eventually this will go in a separate Pervasives module
+/*TODO:syntax problem
     rule
         initEnv => preassign( IdLid(+) |-> external(%addint, 2)
             IdLid(-) |-> external(%subint, 2)
@@ -1265,7 +1360,7 @@ module OCAML-INIT
    //         IdLid(ref) |-> external(%ref, 1)
   //          IdLid(print_int) |-> external(%print-int, 1)
   )
-
+*/
     rule <k> preassign(M':Map) => assigning ...</k>
         <assign> M:Map => M M':Map </assign>
 endmodule

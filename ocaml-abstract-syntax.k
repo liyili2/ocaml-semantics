@@ -87,6 +87,9 @@ imports  OCAML-SYNTAX
     syntax KItem ::= K "<-" K
 
     //type constructs
+    syntax KItem ::= "toUnify"
+    syntax SimpleTypeKItem ::= "int" | "float" | "char" | "string"
+    syntax KItem ::= SimpleTypeKItem
     syntax KItem ::= TyId(K)
     syntax KItem ::= TyConstr(K)
     syntax KItem ::= TyWithArg(K, K)//type typeConstr
@@ -102,6 +105,15 @@ imports  OCAML-SYNTAX
     syntax KItem ::= TySingleMethod(K, K)//name, polytype
     syntax KItem ::= TyMethodCons(K, K)
     syntax KItem ::= TyQuantifier(K, K)
+
+    syntax KItem ::= typeInfer(K)
+                   | typeInferInExpr(K, K)
+    syntax KResult ::= resultType(K)
+    syntax KItem ::= unifier(K, K)
+    syntax KItem ::= unification(K)
+    syntax KItem ::= getFirst(List) [function]
+    rule getFirst(.List) => ExNil
+    rule getFirst(ListItem(unifier(A, B)) L) => A
 
     syntax AllOps ::= Unit| ConsOp | ImportantOps 
 
