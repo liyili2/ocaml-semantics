@@ -12,7 +12,7 @@ imports  OCAML-SYNTAX
     syntax KItem ::= Id
 
     syntax KItem ::= PatternIdentifier(K)
-    //syntax KItem ::= PatternInteger(Int)
+    syntax KItem ::= PatternInteger(Int)
     syntax KItem ::= "Wildcard"
     syntax KItem ::= PaAli(K, K)
     syntax KItem ::= PaTyc(K, K)
@@ -107,8 +107,8 @@ imports  OCAML-SYNTAX
     syntax KItem ::= TyQuantifier(K, K)
 
     syntax KItem ::= typeInfer(K)
-                   | typeInferInExpr(Map, K, K)
-    syntax KResult ::= resultType(List)
+                   | typeInferInExpr(K, K, K)
+    syntax KResult ::= resultType(K)
     syntax KItem ::= unifier(K, K)
     syntax KItem ::= unification(K)
     syntax KItem ::= getFirst(List) [function]

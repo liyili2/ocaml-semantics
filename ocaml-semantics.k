@@ -92,7 +92,7 @@ module OCAML-TRANS
     syntax KItem ::= translationLetBindings(LetBindingList)            [function]
     syntax KItem ::= translationLetBinding(LetBinding)                 [function]
 
-    syntax KItem ::= "assign" "(" K ")"
+    syntax KItem ::= "assign" "(" K ")"               [function]
 
     //Translation Patterns
     /*
@@ -118,7 +118,7 @@ module OCAML-TRANS
                 | "[|" FieldPatternList ";" "|]"     [klabel('patternAsField)]
       */
     
-    rule translation(fun P:Pattern)
+    //rule translation(fun P:Pattern)
 
 
 
@@ -636,7 +636,7 @@ rule BinaryAnd(true, false) => ExBool(false)
     rule decompose(.KList, .KList) => .List
     rule decompose(A:K,, Kl:KList, B:K,, Kl':KList)
                => ListItem(unifier(A, B)) decompose(Kl, Kl')
-    rule decompose(A:KList , B:KList)
+    rule decompose(A:KList , B:KList) // won't this always be the result of the above rule?
                => ListItem(badState)
 
     rule <k> toUnify => .K ...</k>
@@ -644,17 +644,17 @@ rule BinaryAnd(true, false) => ExBool(false)
          <unfiySubst> L':List </unfiySubst>
          <types> TEnv:Map => substitutionInMapList(L', TEnv) </types>
 
-    rule <k> toUnify ...</k>
+    rule <k> toUnify ...</k> // Orient?
          <unifiers> (ListItem(unifier(A:K, TyId(B:K)))
                         => ListItem(unifier(TyId(B), A))) L:List </unifiers>
          <unfiySubst> L':List </unfiySubst>
          requires getKLabel(A) =/=KLabel 'TyId
 
-    rule <k> toUnify ...</k>
+    rule <k> toUnify ...</k>// Delete
          <unifiers> (ListItem(unifier(A:K, A:K)) => .List) L:List </unifiers>
          <unfiySubst> L':List </unfiySubst>
 
-    rule <k> toUnify ...</k>
+    rule <k> toUnify ...</k> // Decompose
          <unifiers> (ListItem(unifier(F:KLabel(Kl:KList), F(Kl':KList)))
                                     => decompose(Kl, Kl')) L:List </unifiers>
          <unfiySubst> L':List </unfiySubst>
@@ -713,6 +713,15 @@ rule BinaryAnd(true, false) => ExBool(false)
     rule typeInferInExpr(TEnv:Map, ExFun(McArr(tildaLabelPattern(X:Id, E1:K, ExNil, E3:K), ExNil, E:K)), Tau:K)
                        => typeInferInExpr(TEnv[X <- TyId(!Alpha:Id)], E, TyId(!Beta:Id))
                               ~> typeInferInExpr(TEnv, TyFun(TyTilda(X), TyId(!Alpha), TyId(!Beta)), Tau)
+
+    rule typeInferInExpr(TEnv:Map, ExFun(McArr(optionalLabelPattern(X:Id, E1:K, T:K, E3:K), ExNil, E:K)), Tau:K)
+                       => typeInferInExpr(TEnv[X <- T], E, TyId(!Beta:Id))
+                              ~> typeInferInExpr(TEnv, TyFun(TyTilda(X), T, TyId(!Beta)), Tau)
+         requires T =/=K 'ExNil(.KList) 
+         
+    rule typeInferInExpr(TEnv:Map, ExFun(McArr(optionalLabelPattern(X:Id, E1:K, ExNil, E3:K), ExNil, E:K)), Tau:K)
+                       => typeInferInExpr(TEnv[X <- TyId(!Alpha:Id)], E, TyId(!Beta:Id))
+                              ~> typeInferInExpr(TEnv, TyFun(TyTilda(X), TyId(!Alpha), TyId(!Beta)), Tau)                              
 
     rule typeInferInExpr(TEnv:Map, ExFun(McArr(Var:K, ExNil, E:K)), Tau:K)
                        => typeInferInExpr(TEnv[Var <- TyId(!Alpha:Id)], E, TyId(!Beta:Id))
@@ -1026,7 +1035,7 @@ module OCAML-FUNCTIONS
 // how to handle environment
  /*  rule replace(closure(Env', McArr(not tildaLabelPattern  , _, _, Rest:K)), ExprLabelId(IdUId(X), E:K)) => replace(Rest,ExprLabelId(IdUId(X), E:K))
      ~> closure(Env', McArr(not tildaLabelPattern ))
-*/
+
    syntax KItem ::= closurereduced(Map, K)
 
    rule closurereduced(Env, E) ~> apply(closure(Env', MC:K), Ts:ElemList, Ms:ElemList, Ns:ElemList) => 
@@ -1390,10 +1399,10 @@ module OCAML-INIT
     imports OCAML-EXCEPTIONS
     imports OCAML-IO
 
-    syntax KItem ::= preassign(Map)
+    syntax KItem ::= preassign(Map) [function]
 // translation of binary operators
     // TODO eventually this will go in a separate Pervasives module
-/*TODO:syntax problem
+
     rule
         initEnv => preassign( IdLid(+) |-> external(%addint, 2)
             IdLid(-) |-> external(%subint, 2)
@@ -1409,7 +1418,7 @@ module OCAML-INIT
    //         IdLid(ref) |-> external(%ref, 1)
   //          IdLid(print_int) |-> external(%print-int, 1)
   )
-*/
+
     rule <k> preassign(M':Map) => assigning ...</k>
         <assign> M:Map => M M':Map </assign>
 endmodule
