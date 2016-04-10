@@ -45,26 +45,26 @@ module OCAML-TRANS
     imports OCAML-SYNTAX-EXTRAS
     
 
-    syntax KItem ::= translationParam(Parameter) 
+    syntax KItem ::= translationParam(Parameter)                     [function]
 
-    syntax KItem ::= translationApp(K, ArgumentList)
-    syntax KItem ::= translationArg(Argument)
-    syntax KItem ::= translationArgs(ArgumentList)
-    syntax KItem ::= translationPattern(Pattern)           [function]
-    syntax KItem ::= translationPatternList(PatternList)
-    syntax KItem ::= translationPatternFieldList(FieldPatternList)
-    syntax KItem ::= translationParams(ParameterList, Expr)
-    syntax KItem ::= translationParams(ParameterList, K, Expr)
+    //syntax KItem ::= translationApp(K, ArgumentList)               [function]
+    //syntax KItem ::= translationArg(Argument)                      [function]
+    //syntax KItem ::= translationArgs(ArgumentList)                 [function]
+    syntax KItem ::= translationPattern(Pattern)                     [function]
+    syntax KItem ::= translationPatternList(PatternList)             [function]
+    syntax KItem ::= translationPatternFieldList(FieldPatternList)   [function]
+    syntax KItem ::= translationParams(ParameterList, Expr)          [function]
+    syntax KItem ::= translationParams(ParameterList, K, Expr)       [function]
 
-    syntax KItem ::= translationLetRecBindings(LetBindingList)
-    syntax KItem ::= translationToBindingForm(K)
-    syntax KItem ::= translationPatternMatching(PatternMatching)
+    syntax KItem ::= translationLetRecBindings(LetBindingList)       [function]
+    syntax KItem ::= translationToBindingForm(K)                     [function]
+    syntax KItem ::= translationPatternMatching(PatternMatching)     [function]
     
     //translating type expressions
-    syntax KItem ::= translationTypeExpr(TypeExpr) 
-    syntax KItem ::= translationTypeExprList(TypeExprList)
-    syntax KItem ::= translationPolyType(PolyTypeExpr)
-    syntax KItem ::= translationMethodTypeList(MethodTypeList)
+    syntax KItem ::= translationTypeExpr(TypeExpr)                   [function]
+    syntax KItem ::= translationTypeExprList(TypeExprList)           [function]
+    syntax KItem ::= translationPolyType(PolyTypeExpr)               [function]
+    syntax KItem ::= translationMethodTypeList(MethodTypeList)       [function]
 
     //translation of long list of ids
     syntax KItem ::= translationIdentifierList(IdentifierQuoteList)    [function]
