@@ -718,8 +718,18 @@ rule BinaryAnd(true, false) => ExBool(false)
                        => typeInferInExpr(TEnv[X <- TyId(!Alpha:Id)], E, TyId(!Beta:Id))
                               ~> typeInferInExpr(TEnv, TyFun(TyQuestionMark(X), TyId(!Alpha), TyId(!Beta)), Tau)                
 
+    rule typeInferInPattern(TEnv, PatternIdentifier(A:Id), Tau:K)
+                                               => resultTypeWithMap(TEnv[A <- Tau], ListItem(unifier(Tau,TEnv[A])))
+         requires A in keys(TEnv)
+
+    rule typeInferInPattern(TEnv, PaTyc(A:K, T:K), Tau:K)
+                                   => typeInferInPattern((TEnv[Tau <- TyId(!Alpha:Id)])[TyId(!Alpha) <- T], A, !Alpha:Id)
+
+    rule resultTypeWithMap(TEnv', L:List) ~> typeInferInExpr(TEnv, A:K, B:K) => typeInferInExpr(TEnv', A, B)
+
     rule typeInferInExpr(TEnv:Map, ExFun(McArr(Var:K, ExNil, E:K)), Tau:K)
-                       => typeInferInExpr(TEnv[Var <- TyId(!Alpha:Id)], E, TyId(!Beta:Id))
+                       => typeInferInPattern(TEnv , Var, TyId(!Alpha:Id))
+                           ~> typeInferInExpr(TEnv, E, TyId(!Beta:Id))
                               ~> typeInferInExpr(TEnv, TyFun(none, TyId(!Alpha), TyId(!Beta)), Tau)
 
     rule resultType(L:List) ~> typeInferInExpr(TEnv:Map , TyFun(X:K, Alpha:K, Beta:K), Tau:K)

@@ -108,7 +108,9 @@ imports  OCAML-SYNTAX
 
     syntax KItem ::= typeInfer(K)
                    | typeInferInExpr(Map, K, K)
+                   | typeInferInPattern(Map, K, K)
     syntax KResult ::= resultType(List)
+    syntax KResult ::= resultTypeWithMap(Map, List)
     syntax KItem ::= unifier(K, K)
     syntax KItem ::= unification(K)
     syntax KItem ::= getFirst(List) [function]
