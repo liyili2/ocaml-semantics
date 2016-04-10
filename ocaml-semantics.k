@@ -1146,7 +1146,7 @@ module OCAML-REF
     syntax External ::= "%ref" // %makemutable
 
 //    rule
-//        <k> '%ref(V:KResult) => ExRec(RbEq(IdLid("val"), V), ExNil) ...</k>
+//        <k> '%ref(V:KResult) => ExRec(RbEq(UId("val"), V), ExNil) ...</k>
 //
 endmodule
 
@@ -1174,9 +1174,7 @@ module OCAML-PATTERNS
     syntax KItem ::= "pattern-failure" "(" K "," K ")"
 
 
-/*TODO: fix the syntax
-    rule PatternInteger(I:Int) <- I => .K [anywhere]
-*/
+    rule PatternConst(I:Int) <- I => .K [anywhere]
 
     rule
         <patterns> (PatternIdentifier(X:Id) <- K:K) => .K ...</patterns>
@@ -1249,7 +1247,7 @@ module OCAML-PATTERNS
     rule matches _ PaOrp(_, _) => true
     rule matches ExTup(_) PaTup(_) => true
     rule matches ExComValue(_, _) PaCom(_, _) => true
-    rule matches I:Int PatternInteger(I) => true
+    rule matches I:Int PatternConst(I) => true
     rule matches . . => true
     rule matches _ _ => false [owise]
 
@@ -1370,23 +1368,23 @@ module OCAML-INIT
     syntax KItem ::= preassign(Map)
 
     // TODO eventually this will go in a separate Pervasives module
-/*TODO:syntax problem
+
     rule
-        initEnv => preassign( IdLid(+) |-> external(%addint, 2)
-            IdLid(-) |-> external(%subint, 2)
-            IdLid(*) |-> external(%mulint, 2)
-            IdLid(/) |-> external(%divint, 2)
-            IdLid(mod) |-> external(%modint, 2)
-    //       IdLid(-) |-> external(%negint, 1))//TODO - monop vs binop 
+        initEnv => preassign( UId(+) |-> external(%addint, 2)
+            UId(-) |-> external(%subint, 2)
+            UId(*) |-> external(%mulint, 2)
+            UId(/) |-> external(%divint, 2)
+            UId(mod) |-> external(%modint, 2)
+    //       UId(-) |-> external(%negint, 1))//TODO - monop vs binop 
         ) ~> preassign(
-            IdLid(not) |-> external(%boolnot, 1) // to cover later
-            IdLid(&&) |-> external(%sequand, 2)
-            IdLid(||) |-> external(%sequor, 2)
-  //          IdLid(raise) |-> external(%raise, 1)
-   //         IdLid(ref) |-> external(%ref, 1)
-  //          IdLid(print_int) |-> external(%print-int, 1)
+            UId(not) |-> external(%boolnot, 1) // to cover later
+            UId(&&) |-> external(%sequand, 2)
+            UId(||) |-> external(%sequor, 2)
+  //          UId(raise) |-> external(%raise, 1)
+   //         UId(ref) |-> external(%ref, 1)
+  //          UId(print_int) |-> external(%print-int, 1)
   )
-*/
+
     rule <k> preassign(M':Map) => assigning ...</k>
         <assign> M:Map => M M':Map </assign>
 endmodule
